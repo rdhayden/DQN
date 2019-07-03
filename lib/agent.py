@@ -1,0 +1,66 @@
+from lib.experience_buffer import Experience
+from skimage.transform import resize
+import numpy as np
+import torch
+import time
+
+class Agent:
+    def __init__(self, game, exp_buffer, reshape_to_width, reshape_to_height, num_frames_stacked, repeat_for_frames, record=False):
+        self.game = game
+        self.exp_buffer = exp_buffer
+        self.reshape_to_width = reshape_to_width
+        self.reshape_to_height = reshape_to_height
+        self.num_frames_stacked = num_frames_stacked
+        self.repeat_for_frames = repeat_for_frames
+
+        if record:
+            self.record_path = str(time.time()) + '.lmp'
+        else:
+            self.record_path = ""
+        
+        self._reset()
+
+    def _reset(self):
+        self.game.new_episode(self.record_path)
+        # reset the stack of frames to zero, we'll append a frame at each step of the game
+        self.state = np.zeros((self.num_frames_stacked, self.reshape_to_width, self.reshape_to_height))
+        self.state = self._preprocess(self.game.get_state().screen_buffer)
+    
+    # Down-samples the image
+    def _preprocess(self, img):
+        # each frame needs another dimension so it can be stacked
+        individual_frame_shape = (1, self.reshape_to_width, self.reshape_to_height)
+        new_frame = resize(img, individual_frame_shape)
+        new_frame = new_frame.astype(np.float32) / 255.0
+        # now create stack with last few frames and this frame
+        self.state[:-1] = self.state[1:]
+        self.state[-1] = new_frame
+        return self.state
+
+    def play_step(self, net, epsilon=0.0, device="cpu", train=True):
+        done_reward = None
+        if np.random.random() < epsilon:
+            action = self.game.sample_actions()
+        else:
+            # add one dimension the array
+            state_a = np.array([self.state], copy=False)
+            state_tensor = torch.tensor(state_a, dtype=torch.float).to(device)
+            q_vals_tensor = net(state_tensor)
+            _, index = torch.max(q_vals_tensor, 1) # index of action predicted with the highest value
+            action_index = index.cpu().data.numpy()[0]
+            action = self.game.action_space[action_index]
+
+        # take actions in the game
+        reward = self.game.make_action_int(action, self.repeat_for_frames)
+        is_done = self.game.is_episode_finished()
+        if is_done:
+            done_reward = self.game.get_total_reward()
+            self._reset()
+        new_state = self._preprocess(self.game.get_state().screen_buffer)
+
+        if train:
+            exp = Experience(self.state, action, reward, is_done, new_state)
+            self.exp_buffer.append(exp)
+            
+        self.state = new_state
+        return done_reward

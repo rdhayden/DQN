@@ -1,0 +1,161 @@
+import torch
+import torch.optim as optim
+import collections
+from lib.conv_net import ConvNet
+from lib.experience_buffer import ExperienceBuffer
+from lib.extended_game import ExtendedGame
+from lib.agent import Agent
+from lib.utils import calc_loss
+from tqdm import trange
+import numpy as np
+from tensorboardX import SummaryWriter
+import time
+import argparse
+import datetime
+import os, sys
+
+epoch_mean_rewards = []
+
+def print_mean_rewards(rewards):
+    e_mean = np.mean(rewards)
+    e_std = np.std(rewards)
+    e_min = np.min(rewards)
+    e_max = np.max(rewards)
+    epoch_mean_rewards.append(e_mean)
+    overall_mean = np.mean(epoch_mean_rewards)
+    print("\nOverall mean reward %d epoch mean %d, epoch STD %d, epoch min %d, epoch max %d" % (overall_mean, e_mean, e_std, e_min, e_max) )
+
+if __name__ == "__main__":
+
+    parser = argparse.ArgumentParser(description='Trains or demonstrates ViZDoom agent')
+    parser.add_argument('--window_visible', type=bool, default=False, help='Boolean to make game window visible. Default: False')
+    parser.add_argument('--gpu', type=bool, default=True, help='Boolean to use GPU. Default: True')
+    parser.add_argument('--num_frames_stacked', type=int, default=4, help='Number of frames to stack together. Default: 4')
+    parser.add_argument('--game_config_file_path', type=str, default='scenarios/basic.cfg', help='Path to game config file. Default: scenarios/basic.cfg')
+    parser.add_argument('--reshape_to_width', type=int, default=160, help='Width to reshape frames to. Default: 160')
+    parser.add_argument('--reshape_to_height', type=int, default=120, help='Height to reshape frames to. Default: 120')
+    parser.add_argument('--repeat_for_frames', type=int, default=4, help='Number of frames to repeat each action. Default: 4')
+    parser.add_argument('--learning_rate', type=float, default=0.00001, help='Learning rate for the optimizer. Default: ')
+    parser.add_argument('--sync_networks_after', type=int, default=1024, help='Steps between synchronization of target and training networks. Default: 1024')
+    parser.add_argument('--epochs', type=int, default=40, help='Number of epochs. Default: 40')
+    parser.add_argument('--steps_per_epoch', type=int, default=2000, help='Number of training steps per epoch. Default: 2000')
+    parser.add_argument('--eps_const', type=float, default=0.05, help='Proportion of time to keep epsilon constant initially. Default: 0.05')
+    parser.add_argument('--eps_max', type=float, default=0.95, help='Determines the final frame (as a percentage of total frames) to degrade epsilon. Default: 0.95')
+    parser.add_argument('--epsilon_start', type=float, default=1.0, help='Epsilon start value. Default: 1.0')
+    parser.add_argument('--epsilon_final', type=float, default=0.01, help='Epsilon final value. Default: 0.01')
+    parser.add_argument('--replay_buffer_size', type=int, default=16384, help='Size of the replay buffer. Default: 16384')
+    parser.add_argument('--batch_size', type=int, default=32, help='Batch size for network training. Default: 32')
+    parser.add_argument('--gamma', type=float, default=0.99, help='Discount factor to apply to previous rewards. Default: 0.99')
+    parser.add_argument('--training', type=bool, default=True, help='Whether in training mode. Default: True')
+    parser.add_argument('--model_save_interval', type=int, default=10, help='Save the model after every X epochs. Default: 10')
+    parser.add_argument('--play_model_path', type=str, help='To play the model, provide the path to the model. Ignore if ---training set to True')
+    parser.add_argument('--log_dir', type=str, default='./runs', help='Directory to write tensorboard logs to. Default: ./runs')
+
+    args = parser.parse_args()
+
+    device = torch.device("cuda" if args.gpu else "cpu")
+
+    game = ExtendedGame(args.game_config_file_path)
+    game.set_window_visible(args.window_visible)
+    game.init()
+
+    if args.training:
+        writer = SummaryWriter(logdir=args.log_dir)
+        
+        total_training_steps = args.epochs * args.steps_per_epoch
+        epsilon_decay_first_frame = total_training_steps * args.eps_const
+        epsilon_decay_last_frame = total_training_steps * args.eps_max
+        epsilon_amount_to_decay = args.epsilon_start - args.epsilon_final
+        epsilon_decay_over_frames = epsilon_decay_last_frame - epsilon_decay_first_frame
+        epsilon_decay_per_frame = epsilon_amount_to_decay / epsilon_decay_over_frames
+
+        experience_buffer = ExperienceBuffer(args.replay_buffer_size)
+
+        # setup the training and target networks
+        net_shape = (args.num_frames_stacked, args.reshape_to_width, args.reshape_to_height)
+        train_net = ConvNet(net_shape, game.n_actions).to(device)
+        target_net = ConvNet(net_shape, game.n_actions).to(device)
+
+        agent = Agent(game, experience_buffer, args.reshape_to_width, args.reshape_to_height, args.num_frames_stacked, args.repeat_for_frames)
+        epsilon = args.epsilon_start
+        #optimizer = optim.SGD(train_net.parameters(), lr=args.learning_rate)
+        optimizer = optim.Adam(train_net.parameters(), lr=args.learning_rate)
+
+        last_100_rewards = collections.deque(maxlen=100)
+
+        dt = datetime.datetime.now()
+        date_time_string = dt.strftime("%Y%m%d-%H-%M-%S")
+        model_path = 'models/' + date_time_string
+        os.makedirs(model_path, mode=0o755)
+        steps = 0
+        last_reward_step = 0
+        ts = time.time()
+        
+        for epoch in range(args.epochs):
+            rewards = []
+
+            print("\n-------- Epoch %d\n--------" % (epoch + 1))
+            for step in trange(args.steps_per_epoch, leave=False):
+                # epsilon is constant for some steps and then decays
+                steps += 1
+                if steps >= epsilon_decay_first_frame:
+                    epsilon = max( args.epsilon_final, (epsilon - epsilon_decay_per_frame) )
+                else:
+                    epsilon = args.epsilon_start
+                done_reward = agent.play_step(train_net, epsilon, device)
+                
+                if len(experience_buffer) >= args.replay_buffer_size:
+
+                    # periodically sync the training and target network weights
+                    if steps % args.sync_networks_after == 0:
+                        target_net.load_state_dict(train_net.state_dict())
+
+                    # update weights
+                    optimizer.zero_grad()
+                    batch = experience_buffer.sample(args.batch_size)
+                    loss_t = calc_loss(batch, train_net, target_net, args.gamma, device=device)
+                    loss_t.backward()
+                    optimizer.step()
+                    writer.add_scalar("loss", loss_t, steps)
+                
+                if done_reward:
+                    rewards.append(done_reward)
+                    last_100_rewards.append(done_reward)
+
+                    # generate and write some stats for tensorboard
+                    speed = (steps - last_reward_step) / (time.time() - ts)
+                    last_reward_step = steps
+                    ts = time.time()
+                    writer.add_scalar("epsilon", epsilon, steps)
+                    writer.add_scalar("speed", speed, steps)
+                    writer.add_scalar("reward", done_reward, steps)
+                    writer.add_scalar("mean_100_reward", np.mean(last_100_rewards), steps)
+            
+            print_mean_rewards(rewards)
+            if (epoch % args.model_save_interval) == 0:
+                model_file = model_path + '/' + str(epoch) + '.pth'
+                torch.save(train_net.state_dict(), model_file)
+                print('\nSaved model to ' + model_file)
+        
+        writer.close()
+
+    else: # play the game don't train
+        ## setup the network
+        net_shape = (args.num_frames_stacked, args.reshape_to_width, args.reshape_to_height)
+        net = ConvNet(net_shape, game.n_actions).to(device)
+        # load the weights
+        state_dict = torch.load(args.play_model_path)
+        net.load_state_dict(state_dict)
+
+        agent = Agent(game, None, args.reshape_to_width, args.reshape_to_height, args.num_frames_stacked, args.repeat_for_frames)
+
+        for epoch in range(args.epochs):
+            rewards = []
+
+            print("\n-------- Epoch %d\n--------" % (epoch + 1))
+            for step in trange(args.steps_per_epoch, leave=False):
+                done_reward = agent.play_step(train_net, epsilon, device)
+                if done_reward:
+                    rewards.append(done_reward)
+            
+            print_mean_rewards(rewards)
