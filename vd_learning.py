@@ -95,7 +95,7 @@ if __name__ == "__main__":
         ts = time.time()
 
         print("Initialisaing buffer with %d transitions" % initialisation_steps)
-        for step in range(initialisation_steps):
+        for step in trange(initialisation_steps, leave=False):
             done_reward = agent.play_step(None, device)
         
         for epoch in range(args.epochs):
