@@ -72,7 +72,7 @@ if __name__ == "__main__":
         epsilon_decay_per_frame = epsilon_amount_to_decay / epsilon_decay_over_frames
 
         experience_buffer = ExperienceBuffer(args.replay_buffer_size, args.n_steps, args.gamma)
-        initialisation_steps = args.replay_buffer_size * args.initialise_buffer_percent / 100
+        initialisation_steps = int(args.replay_buffer_size * args.initialise_buffer_percent / 100)
 
         # setup the training and target networks
         net_shape = (args.num_frames_stacked, args.reshape_to_width, args.reshape_to_height)
