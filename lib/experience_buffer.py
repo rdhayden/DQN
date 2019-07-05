@@ -18,7 +18,7 @@ class ExperienceBuffer:
         Rt = 0
         size = len(self.temp_buffer)
         for i in range(size):
-            Rt += (self.gamma ** i) * self.temp_buffer[i]
+            Rt += (self.gamma ** i) * self.temp_buffer[i].reward
         self.buffer.append(
             Experience(
                 self.temp_buffer[0].state, 
