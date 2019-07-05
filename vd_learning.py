@@ -37,13 +37,15 @@ if __name__ == "__main__":
     parser.add_argument('--repeat_for_frames', type=int, default=4, help='Number of frames to repeat each action. Default: 4')
     parser.add_argument('--learning_rate', type=float, default=0.00001, help='Learning rate for the optimizer. Default: ')
     parser.add_argument('--sync_networks_after', type=int, default=1024, help='Steps between synchronization of target and training networks. Default: 1024')
-    parser.add_argument('--epochs', type=int, default=40, help='Number of epochs. Default: 40')
+    parser.add_argument('--epochs', type=int, default=1000, help='Number of epochs. Default: 40')
     parser.add_argument('--steps_per_epoch', type=int, default=2000, help='Number of training steps per epoch. Default: 2000')
     parser.add_argument('--eps_const', type=float, default=0.05, help='Proportion of time to keep epsilon constant initially. Default: 0.05')
     parser.add_argument('--eps_max', type=float, default=0.95, help='Determines the final frame (as a percentage of total frames) to degrade epsilon. Default: 0.95')
     parser.add_argument('--epsilon_start', type=float, default=1.0, help='Epsilon start value. Default: 1.0')
     parser.add_argument('--epsilon_final', type=float, default=0.01, help='Epsilon final value. Default: 0.01')
-    parser.add_argument('--replay_buffer_size', type=int, default=16384, help='Size of the replay buffer. Default: 16384')
+    parser.add_argument('--replay_buffer_size', type=int, default=1000000, help='Size of the replay buffer. Default: 1000000')
+    parser.add_argument('--n_steps', type=int, default=2, help='Number of steps for n_step look ahead. Default: 2')
+    parser.add_argument('--initialise_buffer_percent', type=int, default=10, help='Percentage of buffer to populate with random actions before training')
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size for network training. Default: 32')
     parser.add_argument('--gamma', type=float, default=0.99, help='Discount factor to apply to previous rewards. Default: 0.99')
     parser.add_argument('--training', type=bool, default=True, help='Whether in training mode. Default: True')
@@ -69,7 +71,8 @@ if __name__ == "__main__":
         epsilon_decay_over_frames = epsilon_decay_last_frame - epsilon_decay_first_frame
         epsilon_decay_per_frame = epsilon_amount_to_decay / epsilon_decay_over_frames
 
-        experience_buffer = ExperienceBuffer(args.replay_buffer_size)
+        experience_buffer = ExperienceBuffer(args.replay_buffer_size, args.n_steps, args.gamma)
+        initialisation_steps = args.replay_buffer_size * args.initialise_buffer_percent / 100
 
         # setup the training and target networks
         net_shape = (args.num_frames_stacked, args.reshape_to_width, args.reshape_to_height)
@@ -90,6 +93,10 @@ if __name__ == "__main__":
         steps = 0
         last_reward_step = 0
         ts = time.time()
+
+        for step in initialisation_steps:
+            print("Initialisaing buffer with %d transitions" % initialisation_steps)
+            done_reward = agent.play_step(None, device)
         
         for epoch in range(args.epochs):
             rewards = []
@@ -102,7 +109,11 @@ if __name__ == "__main__":
                     epsilon = max( args.epsilon_final, (epsilon - epsilon_decay_per_frame) )
                 else:
                     epsilon = args.epsilon_start
-                done_reward = agent.play_step(train_net, epsilon, device)
+                
+                if np.random.random() < epsilon:
+                    done_reward = agent.play_step(None, device)
+                else:
+                    done_reward = agent.play_step(train_net, device)
                 
                 if len(experience_buffer) >= args.replay_buffer_size:
 
@@ -154,7 +165,7 @@ if __name__ == "__main__":
 
             print("\n-------- Epoch %d\n--------" % (epoch + 1))
             for step in trange(args.steps_per_epoch, leave=False):
-                done_reward = agent.play_step(train_net, epsilon, device)
+                done_reward = agent.play_step(train_net, device)
                 if done_reward:
                     rewards.append(done_reward)
             

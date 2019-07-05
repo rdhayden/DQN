@@ -37,9 +37,9 @@ class Agent:
         self.state[-1] = new_frame
         return self.state
 
-    def play_step(self, net, epsilon=0.0, device="cpu", train=True):
+    def play_step(self, net, device="cpu", train=True):
         done_reward = None
-        if np.random.random() < epsilon:
+        if not net:
             action = self.game.sample_actions()
         else:
             # add one dimension the array
