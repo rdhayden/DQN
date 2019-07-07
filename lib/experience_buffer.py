@@ -22,7 +22,7 @@ class ExperienceBuffer:
         self.buffer.append(
             Experience(
                 self.temp_buffer[0].state, 
-                self.temp_buffer[0].reward,
+                self.temp_buffer[0].action,
                 Rt,
                 self.temp_buffer[size - 1].done,
                 self.temp_buffer[size - 1].new_state
