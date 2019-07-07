@@ -23,10 +23,11 @@ class ConvNet(nn.Module):
         # fully connected layers generates best action
         self.fc = nn.Sequential(
             nn.Linear(conv_out_size, 1024),
-            nn.ReLU(),
-            nn.Linear(1024, 512),
-            nn.ReLU(),
-            nn.Linear(512, n_actions)
+            #nn.ReLU(),
+            #nn.Linear(1024, 512),
+            #nn.ReLU(),
+            #nn.Linear(512, n_actions)
+            nn.Linear(1024, n_actions)
         )
 
     def _get_conv_out(self, shape):

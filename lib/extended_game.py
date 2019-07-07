@@ -8,19 +8,13 @@ class ExtendedGame(DoomGame):
         super(ExtendedGame, self).__init__()
         self.load_config(config_file_path)
         
-        # TODO generalise this for later scenarios, for now explicitly set action combinations
-        # combinations to try given that actions are always repeated we need to move and attack
-        # at the same time but not attack standing still or it'll often waste bullets in the 
-        # basic scenario:
         # MOVE_LEFT [1,0,0]
         # MOVE_RIGHT [0,1,0]
-        # MOVE_LEFT + ATTACK [1,0,1]
-        # MOVE_RIGHT + ATTACK [0,1,1]
+        # ATTACK [0,0,1]
         self.actions = [
             [1,0,0],
             [0,1,0],
-            [1,0,1],
-            [0,1,1]
+            [0,0,1]
         ]
 
         self.action_space = np.arange(len(self.actions)).tolist()
