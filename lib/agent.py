@@ -5,7 +5,7 @@ import torch
 import time
 
 class Agent:
-    def __init__(self, game, exp_buffer, num_frames_stacked, repeat_for_frames, record=False):
+    def __init__(self, game, exp_buffer, width, height, num_frames_stacked, repeat_for_frames, record=False):
         self.game = game
         self.exp_buffer = exp_buffer
         self.width = 160
