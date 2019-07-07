@@ -62,6 +62,11 @@ if __name__ == "__main__":
         args.replay_buffer_size = 100
         args.log_dir = './troubleshooting_runs'
         args.batch_size = 3
+    
+    # dimensions of frames after processing, could make this an arg in future, but might be confusing as its not just a resize
+    # I'm removing the cieling too in the agent. Could have a scale_down_percent and remove_cieling arg instead.
+    width = 160
+    height = 72
 
     device = torch.device("cuda" if args.gpu else "cpu")
 
@@ -83,11 +88,11 @@ if __name__ == "__main__":
         initialisation_steps = int(args.replay_buffer_size * args.initialise_buffer_percent / 100)
 
         # setup the training and target networks
-        net_shape = (args.num_frames_stacked, args.reshape_to_width, args.reshape_to_height)
+        net_shape = (args.num_frames_stacked, args.width, args.height)
         train_net = ConvNet(net_shape, game.n_actions).to(device)
         target_net = ConvNet(net_shape, game.n_actions).to(device)
 
-        agent = Agent(game, experience_buffer, args.reshape_to_width, args.reshape_to_height, 
+        agent = Agent(game, experience_buffer, args.width, args.height, 
                     args.num_frames_stacked, args.repeat_for_frames, args.trim_ceiling)
         epsilon = args.epsilon_start
         #optimizer = optim.SGD(train_net.parameters(), lr=args.learning_rate)
@@ -161,13 +166,13 @@ if __name__ == "__main__":
 
     else: # play the game don't train
         ## setup the network
-        net_shape = (args.num_frames_stacked, args.reshape_to_width, args.reshape_to_height)
+        net_shape = (args.num_frames_stacked, args.width, args.height)
         net = ConvNet(net_shape, game.n_actions).to(device)
         # load the weights
         state_dict = torch.load(args.play_model_path)
         net.load_state_dict(state_dict)
 
-        agent = Agent(game, None, args.reshape_to_width, args.reshape_to_height, args.num_frames_stacked, args.repeat_for_frames)
+        agent = Agent(game, None, args.width, args.height, args.num_frames_stacked, args.repeat_for_frames)
 
         for epoch in range(args.epochs):
             rewards = []
