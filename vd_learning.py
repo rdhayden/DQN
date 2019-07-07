@@ -32,8 +32,6 @@ if __name__ == "__main__":
     parser.add_argument('--gpu', type=bool, default=True, help='Boolean to use GPU. Default: True')
     parser.add_argument('--num_frames_stacked', type=int, default=4, help='Number of frames to stack together. Default: 4')
     parser.add_argument('--game_config_file_path', type=str, default='scenarios/basic.cfg', help='Path to game config file. Default: scenarios/basic.cfg')
-    parser.add_argument('--reshape_to_width', type=int, default=160, help='Width to reshape frames to. Default: 160')
-    parser.add_argument('--reshape_to_height', type=int, default=120, help='Height to reshape frames to. Default: 120')
     parser.add_argument('--repeat_for_frames', type=int, default=4, help='Number of frames to repeat each action. Default: 4')
     parser.add_argument('--learning_rate', type=float, default=0.00001, help='Learning rate for the optimizer. Default: ')
     parser.add_argument('--sync_networks_after', type=int, default=1024, help='Steps between synchronization of target and training networks. Default: 1024')
@@ -89,7 +87,8 @@ if __name__ == "__main__":
         train_net = ConvNet(net_shape, game.n_actions).to(device)
         target_net = ConvNet(net_shape, game.n_actions).to(device)
 
-        agent = Agent(game, experience_buffer, args.reshape_to_width, args.reshape_to_height, args.num_frames_stacked, args.repeat_for_frames)
+        agent = Agent(game, experience_buffer, args.reshape_to_width, args.reshape_to_height, 
+                    args.num_frames_stacked, args.repeat_for_frames, args.trim_ceiling)
         epsilon = args.epsilon_start
         #optimizer = optim.SGD(train_net.parameters(), lr=args.learning_rate)
         optimizer = optim.Adam(train_net.parameters(), lr=args.learning_rate)
@@ -125,7 +124,7 @@ if __name__ == "__main__":
                 else:
                     done_reward = agent.play_step(train_net, device)
                 
-                if len(experience_buffer) >= args.replay_buffer_size:
+                if len(experience_buffer) >= args.initialisation_steps:
 
                     # periodically sync the training and target network weights
                     if steps % args.sync_networks_after == 0:

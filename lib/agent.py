@@ -5,11 +5,11 @@ import torch
 import time
 
 class Agent:
-    def __init__(self, game, exp_buffer, reshape_to_width, reshape_to_height, num_frames_stacked, repeat_for_frames, record=False):
+    def __init__(self, game, exp_buffer, num_frames_stacked, repeat_for_frames, record=False):
         self.game = game
         self.exp_buffer = exp_buffer
-        self.reshape_to_width = reshape_to_width
-        self.reshape_to_height = reshape_to_height
+        self.width = 160
+        self.height = 72
         self.num_frames_stacked = num_frames_stacked
         self.repeat_for_frames = repeat_for_frames
 
@@ -23,13 +23,15 @@ class Agent:
     def _reset(self):
         self.game.new_episode(self.record_path)
         # reset the stack of frames to zero, we'll append a frame at each step of the game
-        self.state = np.zeros((self.num_frames_stacked, self.reshape_to_width, self.reshape_to_height))
+        self.state = np.zeros((self.num_frames_stacked, self.width, self.height))
         self.state = self._preprocess(self.game.get_state().screen_buffer)
     
     # Down-samples the image
     def _preprocess(self, img):
+        # remove the cieling, it doesn't add any information
+        img = img[96:,:]
         # each frame needs another dimension so it can be stacked
-        individual_frame_shape = (1, self.reshape_to_width, self.reshape_to_height)
+        individual_frame_shape = (1, self.width, self.height)
         new_frame = resize(img, individual_frame_shape)
         new_frame = new_frame.astype(np.float32) / 255.0
         # now create stack with last few frames and this frame
