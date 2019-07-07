@@ -24,10 +24,10 @@ class Agent:
         self.game.new_episode(self.record_path)
         # reset the stack of frames to zero, we'll append a frame at each step of the game
         self.state = np.zeros((self.num_frames_stacked, self.width, self.height))
-        self.state = self._preprocess(self.game.get_state().screen_buffer)
+        self.state = self._process_frame(self.game.get_state().screen_buffer)
     
-    # Down-samples the image
-    def _preprocess(self, img):
+    # Down-samples the image and stacks the frame
+    def _process_frame(self, img):
         # remove the cieling, it doesn't add any information
         img = img[96:,:]
         # each frame needs another dimension so it can be stacked
@@ -35,11 +35,12 @@ class Agent:
         new_frame = resize(img, individual_frame_shape)
         new_frame = new_frame.astype(np.float32) / 255.0
         # now create stack with last few frames and this frame
-        self.state[:-1] = self.state[1:]
-        self.state[-1] = new_frame
-        return self.state
+        new_stack = np.copy(self.state)
+        new_stack[:-1] = new_stack[1:]
+        new_stack[-1] = new_frame
+        return new_stack
 
-    def play_step(self, net, device="cpu", train=True):
+    def play_step(self, net, device="cpu"):
         done_reward = None
         if not net:
             action = self.game.sample_actions()
@@ -49,20 +50,21 @@ class Agent:
             state_tensor = torch.tensor(state_a, dtype=torch.float).to(device)
             q_vals_tensor = net(state_tensor)
             _, index = torch.max(q_vals_tensor, 1) # index of action predicted with the highest value
-            action_index = index.cpu().data.numpy()[0]
-            action = self.game.action_space[action_index]
+            action = index.cpu().data.numpy()[0]
 
         # take actions in the game
         reward = self.game.make_action_int(action, self.repeat_for_frames)
         is_done = self.game.is_episode_finished()
         if is_done:
             done_reward = self.game.get_total_reward()
-            self._reset()
-        new_state = self._preprocess(self.game.get_state().screen_buffer)
-
-        if train:
+            new_state = self.state # it will get masked later anyway so this is just a placeholder
             exp = Experience(self.state, action, reward, is_done, new_state)
             self.exp_buffer.append(exp)
-            
-        self.state = new_state
+            self._reset()
+        else:
+            new_state = self._process_frame(self.game.get_state().screen_buffer)
+            exp = Experience(self.state, action, reward, is_done, new_state)
+            self.exp_buffer.append(exp)
+            self.state = new_state
+
         return done_reward
