@@ -53,7 +53,7 @@ if __name__ == "__main__":
     parser.add_argument('--play_model_path', type=str, help='To play the model, provide the path to the model. Ignore if ---training set to True')
     parser.add_argument('--log_dir', type=str, default='./runs', help='Directory to write tensorboard logs to. Default: ./runs')
     parser.add_argument('--troubleshoot', type=bool, default=False, help='for troubleshooting the code. Trains with /n window visible, 2 epochs, \
-        100 steps per epoch, sync networks after 10 steps, replay buffer size of 100, log to ./troubleshooting_runs')
+        100 steps per epoch, sync networks after 10 steps, replay buffer size of 100, batch size of 3, log to ./troubleshooting_runs')
 
     args = parser.parse_args()
     if args.troubleshoot:
@@ -63,6 +63,7 @@ if __name__ == "__main__":
         args.sync_networks_after = 10
         args.replay_buffer_size = 100
         args.log_dir = './troubleshooting_runs'
+        args.batch_size = 3
 
     device = torch.device("cuda" if args.gpu else "cpu")
 
