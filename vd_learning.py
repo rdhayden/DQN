@@ -88,11 +88,11 @@ if __name__ == "__main__":
         initialisation_steps = int(args.replay_buffer_size * args.initialise_buffer_percent / 100)
 
         # setup the training and target networks
-        net_shape = (args.num_frames_stacked, args.width, args.height)
+        net_shape = (args.num_frames_stacked, width, height)
         train_net = ConvNet(net_shape, game.n_actions).to(device)
         target_net = ConvNet(net_shape, game.n_actions).to(device)
 
-        agent = Agent(game, experience_buffer, args.width, args.height, 
+        agent = Agent(game, experience_buffer, width, height, 
                     args.num_frames_stacked, args.repeat_for_frames, args.trim_ceiling)
         epsilon = args.epsilon_start
         #optimizer = optim.SGD(train_net.parameters(), lr=args.learning_rate)
@@ -166,13 +166,13 @@ if __name__ == "__main__":
 
     else: # play the game don't train
         ## setup the network
-        net_shape = (args.num_frames_stacked, args.width, args.height)
+        net_shape = (args.num_frames_stacked, width, height)
         net = ConvNet(net_shape, game.n_actions).to(device)
         # load the weights
         state_dict = torch.load(args.play_model_path)
         net.load_state_dict(state_dict)
 
-        agent = Agent(game, None, args.width, args.height, args.num_frames_stacked, args.repeat_for_frames)
+        agent = Agent(game, None, width, height, args.num_frames_stacked, args.repeat_for_frames)
 
         for epoch in range(args.epochs):
             rewards = []
