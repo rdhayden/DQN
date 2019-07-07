@@ -93,7 +93,7 @@ if __name__ == "__main__":
         target_net = ConvNet(net_shape, game.n_actions).to(device)
 
         agent = Agent(game, experience_buffer, width, height, 
-                    args.num_frames_stacked, args.repeat_for_frames, args.trim_ceiling)
+                    args.num_frames_stacked, args.repeat_for_frames)
         epsilon = args.epsilon_start
         #optimizer = optim.SGD(train_net.parameters(), lr=args.learning_rate)
         optimizer = optim.Adam(train_net.parameters(), lr=args.learning_rate)
