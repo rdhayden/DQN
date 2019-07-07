@@ -128,7 +128,7 @@ if __name__ == "__main__":
                 else:
                     done_reward = agent.play_step(train_net, device)
                 
-                if len(experience_buffer) >= args.initialisation_steps:
+                if len(experience_buffer) >= initialisation_steps:
 
                     # periodically sync the training and target network weights
                     if steps % args.sync_networks_after == 0:
