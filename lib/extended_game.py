@@ -16,13 +16,11 @@ class ExtendedGame(DoomGame):
             [0,1,0],
             [0,0,1]
         ]
-
-        self.action_space = np.arange(len(self.actions)).tolist()
-        self.n_actions = len(self.action_space)
+        
+        self.n_actions = len(self.actions)
 
     def sample_actions(self):
-        idx = np.random.choice(self.n_actions)
-        return self.action_space[idx]
+        return np.random.choice(self.n_actions)
     
     def make_action_int(self, action_int, repeat_for_frames):
         '''a utility method to make it possible to make actions with integers'''

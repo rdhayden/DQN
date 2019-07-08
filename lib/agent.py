@@ -57,7 +57,7 @@ class Agent:
         is_done = self.game.is_episode_finished()
         if is_done:
             done_reward = self.game.get_total_reward()
-            new_state = self.state # it will get masked later anyway so this is just a placeholder
+            new_state = self.state # it will get overriden later anyway so this is just a placeholder
             exp = Experience(self.state, action, reward, is_done, new_state)
             self.exp_buffer.append(exp)
             self._reset()
