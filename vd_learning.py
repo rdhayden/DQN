@@ -41,9 +41,9 @@ if __name__ == "__main__":
     parser.add_argument('--eps_max', type=float, default=0.95, help='Determines the final frame (as a percentage of total frames) to degrade epsilon. Default: 0.95')
     parser.add_argument('--epsilon_start', type=float, default=1.0, help='Epsilon start value. Default: 1.0')
     parser.add_argument('--epsilon_final', type=float, default=0.01, help='Epsilon final value. Default: 0.01')
-    parser.add_argument('--replay_buffer_size', type=int, default=500000, help='Size of the replay buffer. Default: 1000000')
+    parser.add_argument('--replay_buffer_size', type=int, default=50000, help='Size of the replay buffer. Default: 1000000')
     parser.add_argument('--n_steps', type=int, default=2, help='Number of steps for n_step look ahead. Default: 2')
-    parser.add_argument('--initialise_buffer_percent', type=int, default=10, help='Percentage of buffer to populate with random actions before training')
+    #parser.add_argument('--initialise_buffer_percent', type=int, default=10, help='Percentage of buffer to populate with random actions before training')
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size for network training. Default: 32')
     parser.add_argument('--gamma', type=float, default=0.99, help='Discount factor to apply to previous rewards. Default: 0.99')
     parser.add_argument('--training', type=bool, default=True, help='Whether in training mode. Default: True')
@@ -85,7 +85,7 @@ if __name__ == "__main__":
         epsilon_decay_per_frame = epsilon_amount_to_decay / epsilon_decay_over_frames
 
         experience_buffer = ExperienceBuffer(args.replay_buffer_size, args.n_steps, args.gamma)
-        initialisation_steps = int(args.replay_buffer_size * args.initialise_buffer_percent / 100)
+        #initialisation_steps = int(args.replay_buffer_size * args.initialise_buffer_percent / 100)
 
         # setup the training and target networks
         net_shape = (args.num_frames_stacked, width, height)
@@ -107,8 +107,8 @@ if __name__ == "__main__":
         last_reward_step = 0
         ts = time.time()
 
-        print("Initialisaing buffer with %d transitions" % initialisation_steps)
-        for step in trange(initialisation_steps, leave=False):
+        print("Initialising buffer with %d transitions" % args.replay_buffer_size)
+        for step in trange(args.replay_buffer_size, leave=False):
             done_reward = agent.play_step(None, device)
         
         for epoch in range(args.epochs):
@@ -128,7 +128,7 @@ if __name__ == "__main__":
                 else:
                     done_reward = agent.play_step(train_net, device)
                 
-                if len(experience_buffer) >= initialisation_steps:
+                if len(experience_buffer) >= args.replay_buffer_size:
 
                     # periodically sync the training and target network weights
                     if steps % args.sync_networks_after == 0:
