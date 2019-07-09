@@ -41,9 +41,9 @@ if __name__ == "__main__":
     parser.add_argument('--eps_max', type=float, default=0.95, help='Determines the final frame (as a percentage of total frames) to degrade epsilon. Default: 0.95')
     parser.add_argument('--epsilon_start', type=float, default=1.0, help='Epsilon start value. Default: 1.0')
     parser.add_argument('--epsilon_final', type=float, default=0.01, help='Epsilon final value. Default: 0.01')
-    parser.add_argument('--replay_buffer_size', type=int, default=50000, help='Size of the replay buffer. Default: 1000000')
+    parser.add_argument('--replay_buffer_size', type=int, default=900000, help='Size of the replay buffer. Default: 1000000')
     parser.add_argument('--n_steps', type=int, default=2, help='Number of steps for n_step look ahead. Default: 2')
-    #parser.add_argument('--initialise_buffer_percent', type=int, default=10, help='Percentage of buffer to populate with random actions before training')
+    parser.add_argument('--initialise_buffer_percent', type=int, default=10, help='Percentage of buffer to populate with random actions before training')
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size for network training. Default: 32')
     parser.add_argument('--gamma', type=float, default=0.99, help='Discount factor to apply to previous rewards. Default: 0.99')
     parser.add_argument('--training', type=bool, default=True, help='Whether in training mode. Default: True')
@@ -65,8 +65,8 @@ if __name__ == "__main__":
     
     # dimensions of frames after processing, could make this an arg in future, but might be confusing as its not just a resize
     # I'm removing the cieling too in the agent. Could have a scale_down_percent and remove_cieling arg instead.
-    width = 160
-    height = 72
+    width = 54
+    height = 54
 
     device = torch.device("cuda" if args.gpu else "cpu")
 
@@ -85,7 +85,7 @@ if __name__ == "__main__":
         epsilon_decay_per_frame = epsilon_amount_to_decay / epsilon_decay_over_frames
 
         experience_buffer = ExperienceBuffer(args.replay_buffer_size, args.n_steps, args.gamma)
-        #initialisation_steps = int(args.replay_buffer_size * args.initialise_buffer_percent / 100)
+        initialisation_steps = int(args.replay_buffer_size * args.initialise_buffer_percent / 100)
 
         # setup the training and target networks
         net_shape = (args.num_frames_stacked, width, height)
@@ -107,8 +107,8 @@ if __name__ == "__main__":
         last_reward_step = 0
         ts = time.time()
 
-        print("Initialising buffer with %d transitions" % args.replay_buffer_size)
-        for step in trange(args.replay_buffer_size, leave=False):
+        print("Initialising buffer with %d transitions" % initialisation_steps)
+        for step in trange(initialisation_steps, leave=False):
             done_reward = agent.play_step(None, device)
         
         for epoch in range(args.epochs):

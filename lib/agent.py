@@ -8,8 +8,8 @@ class Agent:
     def __init__(self, game, exp_buffer, width, height, num_frames_stacked, repeat_for_frames, record=False):
         self.game = game
         self.exp_buffer = exp_buffer
-        self.width = 160
-        self.height = 72
+        self.width = width
+        self.height = height
         self.num_frames_stacked = num_frames_stacked
         self.repeat_for_frames = repeat_for_frames
 
@@ -28,8 +28,9 @@ class Agent:
     
     # Down-samples the image and stacks the frame
     def _process_frame(self, img):
-        # remove the cieling, it doesn't add any information
-        img = img[96:,:]
+        # remove the cieling, it doesn't add any information, and reduce width 
+        # both sides to create square image as the view is always centered on the player
+        img = img[96:,88:232]
         # each frame needs another dimension so it can be stacked
         individual_frame_shape = (1, self.width, self.height)
         new_frame = resize(img, individual_frame_shape)

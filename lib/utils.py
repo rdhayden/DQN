@@ -18,7 +18,7 @@ def calc_loss(batch, train_net, target_net, gamma, device="cpu"):
     next_state_values = target_net(next_states_v).gather(1, next_state_actions.unsqueeze(-1)).squeeze(-1)
     next_state_values[done_mask] = 0.0
 
-    # detach the values so that back propagation does not update the target network
+    # detach the next state values so that back propagation does not update the target network
     next_state_values = next_state_values.detach()
 
     expected_state_action_values = rewards_v + gamma * next_state_values
