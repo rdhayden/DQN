@@ -14,6 +14,7 @@ import argparse
 import datetime
 import os, sys
 
+#@profile
 def train():
     game = ExtendedGame(args.game_config_file_path)
     game.set_window_visible(args.window_visible)
@@ -128,13 +129,13 @@ if __name__ == "__main__":
     parser.add_argument('--repeat_for_frames', type=int, default=4, help='Number of frames to repeat each action. Default: 4')
     parser.add_argument('--learning_rate', type=float, default=0.00001, help='Learning rate for the optimizer. Default: ')
     parser.add_argument('--sync_networks_after', type=int, default=500, help='Steps between synchronization of target and training networks. Default: 1024')
-    parser.add_argument('--epochs', type=int, default=700, help='Number of epochs. Default: 700')
+    parser.add_argument('--epochs', type=int, default=500, help='Number of epochs. Default: 500')
     parser.add_argument('--steps_per_epoch', type=int, default=2000, help='Number of training steps per epoch. Default: 2000')
     parser.add_argument('--eps_const', type=float, default=0.05, help='Proportion of time to keep epsilon constant initially. Default: 0.05')
     parser.add_argument('--eps_max', type=float, default=0.95, help='Determines the final frame (as a percentage of total frames) to degrade epsilon. Default: 0.95')
     parser.add_argument('--epsilon_start', type=float, default=1.0, help='Epsilon start value. Default: 1.0')
     parser.add_argument('--epsilon_final', type=float, default=0.01, help='Epsilon final value. Default: 0.01')
-    parser.add_argument('--replay_buffer_size', type=int, default=800000, help='Size of the replay buffer. Default: 800000')
+    parser.add_argument('--replay_buffer_size', type=int, default=500000, help='Size of the replay buffer. Default: 500000')
     parser.add_argument('--n_steps', type=int, default=2, help='Number of steps for n_step look ahead. Default: 2')
     parser.add_argument('--initialise_buffer_percent', type=int, default=10, help='Percentage of buffer to populate with random actions before training')
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size for network training. Default: 32')
