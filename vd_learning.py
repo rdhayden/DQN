@@ -1,3 +1,5 @@
+import cherrypy
+import dowser
 import torch
 import torch.optim as optim
 import collections
@@ -17,6 +19,7 @@ import os, sys
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Trains or demonstrates ViZDoom agent')
+    parser.add_argument('--mem_profile', type=bool, default=False, help='If true, shows memory profile at http://localhost:8088/dowser. Default: False')
     parser.add_argument('--window_visible', type=bool, default=False, help='Boolean to make game window visible. Default: False')
     parser.add_argument('--gpu', type=bool, default=True, help='Boolean to use GPU. Default: True')
     parser.add_argument('--num_frames_stacked', type=int, default=4, help='Number of frames to stack together. Default: 4')
@@ -43,6 +46,12 @@ if __name__ == "__main__":
         100 steps per epoch, sync networks after 10 steps, replay buffer size of 100, batch size of 3, log to ./troubleshooting_runs')
 
     args = parser.parse_args()
+
+    if args.mem_profile:
+        cherrypy.config.update({'server.socket_port': 8088})
+        cherrypy.tree.mount(dowser.Root(), '/dowser')
+        cherrypy.engine.start()
+
     if args.troubleshoot:
         args.epochs = 2
         args.steps_per_epoch = 100
@@ -50,7 +59,7 @@ if __name__ == "__main__":
         args.replay_buffer_size = 100
         args.log_dir = './troubleshooting_runs'
         args.batch_size = 3
-    
+
     # dimensions of frames after processing, could make this an arg in future, but might be confusing as its not just a resize
     # I'm removing the cieling too in the agent. Could have a scale_down_percent and remove_cieling arg instead.
     width = 54
