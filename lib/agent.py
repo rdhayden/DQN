@@ -5,8 +5,9 @@ import torch
 import time
 
 class Agent:
-    def __init__(self, game, exp_buffer, width, height, num_frames_stacked, repeat_for_frames, record=False):
+    def __init__(self, game, net, exp_buffer, width, height, num_frames_stacked, repeat_for_frames, record=False):
         self.game = game
+        self.net = net
         self.exp_buffer = exp_buffer
         self.width = width
         self.height = height
@@ -41,15 +42,15 @@ class Agent:
         new_stack[-1] = new_frame
         return new_stack
 
-    def play_step(self, net, device="cpu"):
+    def play_step(self, play_random, device="cpu"):
         done_reward = None
-        if not net:
+        if play_random:
             action = self.game.sample_actions()
         else:
             # add one dimension the array
             state_a = np.array([self.state], copy=False)
             state_tensor = torch.tensor(state_a, dtype=torch.float).to(device)
-            q_vals_tensor = net(state_tensor)
+            q_vals_tensor = self.net(state_tensor)
             _, index = torch.max(q_vals_tensor, 1) # index of action predicted with the highest value
             action = index.cpu().data.numpy()[0]
 

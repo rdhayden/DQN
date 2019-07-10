@@ -36,7 +36,6 @@ class ExperienceBuffer:
             self.temp_buffer.clear()
         elif len(self.temp_buffer) == self.n_steps:
             self._make_n_step_experience()
-            # carry on here - need to consider done states 
 
     def sample(self, batch_size):
         indices = np.random.choice(len(self.buffer), batch_size, replace=False)

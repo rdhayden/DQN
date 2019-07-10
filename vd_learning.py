@@ -14,15 +14,17 @@ import argparse
 import datetime
 import os, sys
 
-epoch_mean_rewards = []
+total_mean = 0
+total_count = 0
 
 def print_mean_rewards(rewards):
     e_mean = np.mean(rewards)
     e_std = np.std(rewards)
     e_min = np.min(rewards)
     e_max = np.max(rewards)
-    epoch_mean_rewards.append(e_mean)
-    overall_mean = np.mean(epoch_mean_rewards)
+    total_mean += e_mean
+    total_count += 1
+    overall_mean = np.mean(total_mean/total_count)
     print("\nOverall mean reward %d epoch mean %d, epoch STD %d, epoch min %d, epoch max %d" % (overall_mean, e_mean, e_std, e_min, e_max) )
 
 if __name__ == "__main__":
@@ -34,14 +36,14 @@ if __name__ == "__main__":
     parser.add_argument('--game_config_file_path', type=str, default='scenarios/basic.cfg', help='Path to game config file. Default: scenarios/basic.cfg')
     parser.add_argument('--repeat_for_frames', type=int, default=4, help='Number of frames to repeat each action. Default: 4')
     parser.add_argument('--learning_rate', type=float, default=0.00001, help='Learning rate for the optimizer. Default: ')
-    parser.add_argument('--sync_networks_after', type=int, default=1000, help='Steps between synchronization of target and training networks. Default: 1024')
-    parser.add_argument('--epochs', type=int, default=500, help='Number of epochs. Default: 40')
+    parser.add_argument('--sync_networks_after', type=int, default=500, help='Steps between synchronization of target and training networks. Default: 1024')
+    parser.add_argument('--epochs', type=int, default=700, help='Number of epochs. Default: 700')
     parser.add_argument('--steps_per_epoch', type=int, default=2000, help='Number of training steps per epoch. Default: 2000')
     parser.add_argument('--eps_const', type=float, default=0.05, help='Proportion of time to keep epsilon constant initially. Default: 0.05')
     parser.add_argument('--eps_max', type=float, default=0.95, help='Determines the final frame (as a percentage of total frames) to degrade epsilon. Default: 0.95')
     parser.add_argument('--epsilon_start', type=float, default=1.0, help='Epsilon start value. Default: 1.0')
     parser.add_argument('--epsilon_final', type=float, default=0.01, help='Epsilon final value. Default: 0.01')
-    parser.add_argument('--replay_buffer_size', type=int, default=900000, help='Size of the replay buffer. Default: 1000000')
+    parser.add_argument('--replay_buffer_size', type=int, default=800000, help='Size of the replay buffer. Default: 800000')
     parser.add_argument('--n_steps', type=int, default=2, help='Number of steps for n_step look ahead. Default: 2')
     parser.add_argument('--initialise_buffer_percent', type=int, default=10, help='Percentage of buffer to populate with random actions before training')
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size for network training. Default: 32')
@@ -92,7 +94,7 @@ if __name__ == "__main__":
         train_net = ConvNet(net_shape, game.n_actions).to(device)
         target_net = ConvNet(net_shape, game.n_actions).to(device)
 
-        agent = Agent(game, experience_buffer, width, height, args.num_frames_stacked, args.repeat_for_frames)
+        agent = Agent(game, train_net, experience_buffer, width, height, args.num_frames_stacked, args.repeat_for_frames)
         epsilon = args.epsilon_start
         #optimizer = optim.SGD(train_net.parameters(), lr=args.learning_rate)
         optimizer = optim.Adam(train_net.parameters(), lr=args.learning_rate)
@@ -109,7 +111,7 @@ if __name__ == "__main__":
 
         print("Initialising buffer with %d transitions" % initialisation_steps)
         for step in trange(initialisation_steps, leave=False):
-            done_reward = agent.play_step(None, device)
+            agent.play_step(True, device)
         
         for epoch in range(args.epochs):
             rewards = []
@@ -124,9 +126,9 @@ if __name__ == "__main__":
                     epsilon = args.epsilon_start
                 
                 if np.random.random() < epsilon:
-                    done_reward = agent.play_step(None, device)
+                    done_reward = agent.play_step(True, device)
                 else:
-                    done_reward = agent.play_step(train_net, device)
+                    done_reward = agent.play_step(False, device)
                 
                 if len(experience_buffer) >= args.replay_buffer_size:
 
@@ -178,7 +180,7 @@ if __name__ == "__main__":
 
             print("\n-------- Epoch %d\n--------" % (epoch + 1))
             for step in trange(args.steps_per_epoch, leave=False):
-                done_reward = agent.play_step(train_net, device)
+                done_reward = agent.play_step(False, device)
                 if done_reward:
                     rewards.append(done_reward)
             
