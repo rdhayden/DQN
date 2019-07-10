@@ -14,7 +14,6 @@ import argparse
 import datetime
 import os, sys
 
-@profile
 def train():
     game = ExtendedGame(args.game_config_file_path)
     game.set_window_visible(args.window_visible)
