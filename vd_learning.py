@@ -57,7 +57,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     if args.troubleshoot:
-        args.window_visible = True
         args.epochs = 2
         args.steps_per_epoch = 100
         args.sync_networks_after = 10
