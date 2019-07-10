@@ -14,19 +14,6 @@ import argparse
 import datetime
 import os, sys
 
-total_mean = 0
-total_count = 0
-
-def print_mean_rewards(rewards):
-    e_mean = np.mean(rewards)
-    e_std = np.std(rewards)
-    e_min = np.min(rewards)
-    e_max = np.max(rewards)
-    total_mean += e_mean
-    total_count += 1
-    overall_mean = np.mean(total_mean/total_count)
-    print("\nOverall mean reward %d epoch mean %d, epoch STD %d, epoch min %d, epoch max %d" % (overall_mean, e_mean, e_std, e_min, e_max) )
-
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description='Trains or demonstrates ViZDoom agent')
@@ -99,7 +86,11 @@ if __name__ == "__main__":
         optimizer = optim.Adam(train_net.parameters(), lr=args.learning_rate)
 
         last_100_rewards = collections.deque(maxlen=100)
-
+        
+        # to track the mean across epochs
+        total_mean = 0
+        total_count = 0
+        
         dt = datetime.datetime.now()
         date_time_string = dt.strftime("%Y%m%d-%H-%M-%S")
         model_path = 'models/' + date_time_string
@@ -155,8 +146,16 @@ if __name__ == "__main__":
                     writer.add_scalar("speed", speed, steps)
                     writer.add_scalar("reward", done_reward, steps)
                     writer.add_scalar("mean_100_reward", np.mean(last_100_rewards), steps)
+             
+            e_mean = np.mean(rewards)
+            e_std = np.std(rewards)
+            e_min = np.min(rewards)
+            e_max = np.max(rewards)
+            total_mean += e_mean
+            total_count += 1
+            overall_mean = np.mean(total_mean/total_count)
+            print("\nOverall mean reward %d epoch mean %d, epoch STD %d, epoch min %d, epoch max %d" % (overall_mean, e_mean, e_std, e_min, e_max) )
             
-            print_mean_rewards(rewards)
             if (epoch % args.model_save_interval) == 0:
                 model_file = model_path + '/' + str(epoch) + '.pth'
                 torch.save(train_net.state_dict(), model_file)
@@ -164,23 +163,4 @@ if __name__ == "__main__":
         
         writer.close()
 
-    else: # play the game don't train
-        ## setup the network
-        net_shape = (args.num_frames_stacked, width, height)
-        net = ConvNet(net_shape, game.n_actions).to(device)
-        # load the weights
-        state_dict = torch.load(args.play_model_path)
-        net.load_state_dict(state_dict)
-
-        agent = Agent(game, None, width, height, args.num_frames_stacked, args.repeat_for_frames)
-
-        for epoch in range(args.epochs):
-            rewards = []
-
-            print("\n-------- Epoch %d\n--------" % (epoch + 1))
-            for step in trange(args.steps_per_epoch, leave=False):
-                done_reward = agent.play_step(False, device)
-                if done_reward:
-                    rewards.append(done_reward)
-            
-            print_mean_rewards(rewards)
+    # TODO add else to play the game without training
