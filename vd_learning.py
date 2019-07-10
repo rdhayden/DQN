@@ -15,112 +15,109 @@ import datetime
 import os, sys
 
 @profile
-def game_init():
+def train():
     game = ExtendedGame(args.game_config_file_path)
     game.set_window_visible(args.window_visible)
-    game.init()    
-
-@profile
-def train():
-        writer = SummaryWriter(logdir=args.log_dir)
+    game.init() 
+    writer = SummaryWriter(logdir=args.log_dir)
         
-        total_training_steps = args.epochs * args.steps_per_epoch
-        epsilon_decay_first_frame = total_training_steps * args.eps_const
-        epsilon_decay_last_frame = total_training_steps * args.eps_max
-        epsilon_amount_to_decay = args.epsilon_start - args.epsilon_final
-        epsilon_decay_over_frames = epsilon_decay_last_frame - epsilon_decay_first_frame
-        epsilon_decay_per_frame = epsilon_amount_to_decay / epsilon_decay_over_frames
+    total_training_steps = args.epochs * args.steps_per_epoch
+    epsilon_decay_first_frame = total_training_steps * args.eps_const
+    epsilon_decay_last_frame = total_training_steps * args.eps_max
+    epsilon_amount_to_decay = args.epsilon_start - args.epsilon_final
+    epsilon_decay_over_frames = epsilon_decay_last_frame - epsilon_decay_first_frame
+    epsilon_decay_per_frame = epsilon_amount_to_decay / epsilon_decay_over_frames
 
-        experience_buffer = ExperienceBuffer(args.replay_buffer_size, args.n_steps, args.gamma)
-        initialisation_steps = int(args.replay_buffer_size * args.initialise_buffer_percent / 100)
+    experience_buffer = ExperienceBuffer(args.replay_buffer_size, args.n_steps, args.gamma)
+    initialisation_steps = int(args.replay_buffer_size * args.initialise_buffer_percent / 100)
 
-        # setup the training and target networks
-        net_shape = (args.num_frames_stacked, width, height)
-        train_net = ConvNet(net_shape, game.n_actions).to(device)
-        target_net = ConvNet(net_shape, game.n_actions).to(device)
+    # setup the training and target networks
+    net_shape = (args.num_frames_stacked, width, height)
+    train_net = ConvNet(net_shape, game.n_actions).to(device)
+    target_net = ConvNet(net_shape, game.n_actions).to(device)
 
-        agent = Agent(game, train_net, experience_buffer, width, height, args.num_frames_stacked, args.repeat_for_frames)
-        epsilon = args.epsilon_start
-        #optimizer = optim.SGD(train_net.parameters(), lr=args.learning_rate)
-        optimizer = optim.Adam(train_net.parameters(), lr=args.learning_rate)
+    agent = Agent(game, train_net, experience_buffer, width, height, args.num_frames_stacked, args.repeat_for_frames)
+    epsilon = args.epsilon_start
+    #optimizer = optim.SGD(train_net.parameters(), lr=args.learning_rate)
+    optimizer = optim.Adam(train_net.parameters(), lr=args.learning_rate)
 
-        last_100_rewards = collections.deque(maxlen=100)
-        
-        # to track the mean across epochs
-        total_mean = 0
-        total_count = 0
-        
-        dt = datetime.datetime.now()
-        date_time_string = dt.strftime("%Y%m%d-%H-%M-%S")
-        model_path = 'models/' + date_time_string
-        os.makedirs(model_path, mode=0o755)
-        steps = 0
-        last_reward_step = 0
-        ts = time.time()
+    last_100_rewards = collections.deque(maxlen=100)
+    
+    # to track the mean across epochs
+    total_mean = 0
+    total_count = 0
+    
+    dt = datetime.datetime.now()
+    date_time_string = dt.strftime("%Y%m%d-%H-%M-%S")
+    model_path = 'models/' + date_time_string
+    os.makedirs(model_path, mode=0o755)
+    steps = 0
+    last_reward_step = 0
+    ts = time.time()
 
-        print("Initialising buffer with %d transitions" % initialisation_steps)
-        for step in trange(initialisation_steps, leave=False):
-            agent.play_step(True, device)
-        
-        for epoch in range(args.epochs):
-            rewards = []
+    print("Initialising buffer with %d transitions" % initialisation_steps)
+    for step in trange(initialisation_steps, leave=False):
+        agent.play_step(True, device)
+    
+    for epoch in range(args.epochs):
+        rewards = []
 
-            print("\n-------- Epoch %d\n--------" % (epoch + 1))
-            for step in trange(args.steps_per_epoch, leave=False):
-                # epsilon is constant for some steps and then decays
-                steps += 1
-                if steps >= epsilon_decay_first_frame:
-                    epsilon = max( args.epsilon_final, (epsilon - epsilon_decay_per_frame) )
-                else:
-                    epsilon = args.epsilon_start
-                
-                if np.random.random() < epsilon:
-                    done_reward = agent.play_step(True, device)
-                else:
-                    done_reward = agent.play_step(False, device)
-                
-                if len(experience_buffer) >= args.replay_buffer_size:
-
-                    # periodically sync the training and target network weights
-                    if steps % args.sync_networks_after == 0:
-                        target_net.load_state_dict(train_net.state_dict())
-
-                    # update weights
-                    optimizer.zero_grad()
-                    batch = experience_buffer.sample(args.batch_size)
-                    loss_t = calc_loss(batch, train_net, target_net, args.gamma, device=device)
-                    loss_t.backward()
-                    optimizer.step()
-                    writer.add_scalar("loss", loss_t, steps)
-                
-                if done_reward:
-                    rewards.append(done_reward)
-                    last_100_rewards.append(done_reward)
-
-                    # generate and write some stats for tensorboard
-                    speed = (steps - last_reward_step) / (time.time() - ts)
-                    last_reward_step = steps
-                    ts = time.time()
-                    writer.add_scalar("epsilon", epsilon, steps)
-                    writer.add_scalar("speed", speed, steps)
-                    writer.add_scalar("reward", done_reward, steps)
-                    writer.add_scalar("mean_100_reward", np.mean(last_100_rewards), steps)
-             
-            e_mean = np.mean(rewards)
-            e_std = np.std(rewards)
-            e_min = np.min(rewards)
-            e_max = np.max(rewards)
-            total_mean += e_mean
-            total_count += 1
-            overall_mean = np.mean(total_mean/total_count)
-            print("\nOverall mean reward %d epoch mean %d, epoch STD %d, epoch min %d, epoch max %d" % (overall_mean, e_mean, e_std, e_min, e_max) )
+        print("\n-------- Epoch %d\n--------" % (epoch + 1))
+        for step in trange(args.steps_per_epoch, leave=False):
+            # epsilon is constant for some steps and then decays
+            steps += 1
+            if steps >= epsilon_decay_first_frame:
+                epsilon = max( args.epsilon_final, (epsilon - epsilon_decay_per_frame) )
+            else:
+                epsilon = args.epsilon_start
             
-            if (epoch % args.model_save_interval) == 0:
-                model_file = model_path + '/' + str(epoch) + '.pth'
-                torch.save(train_net.state_dict(), model_file)
-                print('\nSaved model to ' + model_file)
+            if np.random.random() < epsilon:
+                done_reward = agent.play_step(True, device)
+            else:
+                done_reward = agent.play_step(False, device)
+            
+            if len(experience_buffer) >= args.replay_buffer_size:
+
+                # periodically sync the training and target network weights
+                if steps % args.sync_networks_after == 0:
+                    target_net.load_state_dict(train_net.state_dict())
+
+                # update weights
+                optimizer.zero_grad()
+                batch = experience_buffer.sample(args.batch_size)
+                loss_t = calc_loss(batch, train_net, target_net, args.gamma, device=device)
+                loss_t.backward()
+                optimizer.step()
+                writer.add_scalar("loss", loss_t, steps)
+            
+            if done_reward:
+                rewards.append(done_reward)
+                last_100_rewards.append(done_reward)
+
+                # generate and write some stats for tensorboard
+                speed = (steps - last_reward_step) / (time.time() - ts)
+                last_reward_step = steps
+                ts = time.time()
+                writer.add_scalar("epsilon", epsilon, steps)
+                writer.add_scalar("speed", speed, steps)
+                writer.add_scalar("reward", done_reward, steps)
+                writer.add_scalar("mean_100_reward", np.mean(last_100_rewards), steps)
+            
+        e_mean = np.mean(rewards)
+        e_std = np.std(rewards)
+        e_min = np.min(rewards)
+        e_max = np.max(rewards)
+        total_mean += e_mean
+        total_count += 1
+        overall_mean = np.mean(total_mean/total_count)
+        print("\nOverall mean reward %d epoch mean %d, epoch STD %d, epoch min %d, epoch max %d" % (overall_mean, e_mean, e_std, e_min, e_max) )
         
-        writer.close()
+        if (epoch % args.model_save_interval) == 0:
+            model_file = model_path + '/' + str(epoch) + '.pth'
+            torch.save(train_net.state_dict(), model_file)
+            print('\nSaved model to ' + model_file)
+    
+    writer.close()
 
 if __name__ == "__main__":
 
@@ -170,7 +167,6 @@ if __name__ == "__main__":
     # game = ExtendedGame(args.game_config_file_path)
     # game.set_window_visible(args.window_visible)
     # game.init()
-    game_init()
 
     if args.training:
         train()
