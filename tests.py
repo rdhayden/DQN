@@ -30,13 +30,26 @@ if __name__ == "__main__":
     game = ExtendedGame('scenarios/basic.cfg')
     game.set_window_visible(True)
     game.init()
-    number_of_times = 20
-    input("Press any key to move left {} times".format(number_of_times))
-    print("reward {}".format(game.make_action_int(0,number_of_times)))
-    input("Press any key to fire {} times".format(number_of_times))
-    print("reward {}".format(game.make_action_int(2,12)))
-    input("Press any key to move right {} times".format(number_of_times))
-    print("reward {}".format(game.make_action_int(1,12)))
+    number_of_times = 4
+    
+    input("Press any key to make left action {} times, each action repeats for 4 frames".format(number_of_times))
+    reward = 0
+    for i in range(number_of_times):
+        reward += game.make_action_int(0,4)
+    print("reward {}".format(reward))
+
+    input("Press any key to make fire action {} times, each action repeats for 4 frames".format(number_of_times))
+    reward = 0
+    for i in range(number_of_times):
+        reward += game.make_action_int(2,4)
+    print("reward {}".format(reward))
+
+    input("Press any key to make right action {} times, each action repeats for 4 frames".format(number_of_times))
+    reward = 0
+    for i in range(number_of_times):
+        reward += game.make_action_int(1,4)
+    print("reward {}".format(reward))
+
     input("Press any key to continue")  
     
     capacity = 10
@@ -71,7 +84,10 @@ if __name__ == "__main__":
     print("pass: the last frame in the stack should not be zero")
 
     print("Visualy test Agent, after reset top frame should be a reduced image of size {} by {}".format(width, height))
-    img = agent.state[num_frames_stacked-1].reshape(width, height)
+    agent._reset()
+    print(agent.state[-1].shape)
+    print(agent.state[-1])
+    img = agent.state[-1].reshape(width, height)
     io.imshow(img)
     plt.show()
     input("Press any key to continue")
