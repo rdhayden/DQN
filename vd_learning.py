@@ -57,9 +57,9 @@ def train():
     ts = time.time()
     
     if args.initialise_buffer == "init":
-        num_transitions = args.replay_buffer_size / args.buffer_skip
-        print("Initialising and saving buffer with %d transitions" % num_transitions)
-        for step in trange(args.replay_buffer_size, leave=False):
+        steps = args.replay_buffer_size * args.buffer_skip
+        print("Initialising and saving buffer with %d transitions" % args.replay_buffer_size)
+        for step in trange(steps, leave=False):
             if (step % args.buffer_skip == 0):
                 agent.play_step(True, device, write_to_buffer=True)
             else:
@@ -154,11 +154,11 @@ if __name__ == "__main__":
     parser.add_argument('--eps_max', type=float, default=0.95, help='Determines the final frame (as a percentage of total frames) to degrade epsilon. Default: 0.95')
     parser.add_argument('--epsilon_start', type=float, default=1.0, help='Epsilon start value. Default: 1.0')
     parser.add_argument('--epsilon_final', type=float, default=0.01, help='Epsilon final value. Default: 0.01')
-    parser.add_argument('--replay_buffer_size', type=int, default=1000000, help='Size of the replay buffer. Default: 1000000')
+    parser.add_argument('--replay_buffer_size', type=int, default=500000, help='Size of the replay buffer. Default: 500000')
     parser.add_argument('--n_steps', type=int, default=2, help='Number of steps for n_step look ahead. Default: 2')
     parser.add_argument('--initialise_buffer_percent', type=int, default=10, help='Percentage of buffer to populate with random actions before training')
     parser.add_argument('--initialise_buffer', type=str, default="", help='If init, initialises buffer and saves it only, if load it loads the buffer from file, otherwise initialises buffer and continues')
-    parser.add_argument('--buffer_skip', type=int, default=1, help='If initialise_buffer is init, only records every n experiences in the buffer. Default: 1')
+    parser.add_argument('--buffer_skip', type=int, default=2, help='If initialise_buffer is init, only records every n experiences in the buffer. Default: 2')
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size for network training. Default: 32')
     parser.add_argument('--gamma', type=float, default=0.99, help='Discount factor to apply to previous rewards. Default: 0.99')
     parser.add_argument('--training', type=bool, default=True, help='Whether in training mode. Default: True')
