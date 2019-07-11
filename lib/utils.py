@@ -11,7 +11,7 @@ def calc_loss(batch, train_net, target_net, gamma, device="cpu"):
     rewards_v = torch.tensor(rewards).to(device)
 
     # done's are Booleans, so the tensor can be used as a mask
-    done_mask = torch.ByteTensor(dones).to(device) 
+    done_mask = torch.ByteTensor(dones).to(device)
 
     state_action_values = train_net(states_v).gather(1, actions_v.unsqueeze(-1)).squeeze(-1)
     next_state_actions = train_net(next_states_v).max(1)[1]

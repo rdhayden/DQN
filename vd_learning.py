@@ -1,3 +1,4 @@
+import pickle
 import torch
 import torch.optim as optim
 import collections
@@ -56,8 +57,19 @@ def train():
     ts = time.time()
 
     print("Initialising buffer with %d transitions" % initialisation_steps)
-    for step in trange(initialisation_steps, leave=False):
-        agent.play_step(True, device)
+    
+    if args.initialise_buffer == "init":
+        for step in trange(args.replay_buffer_size, leave=False):
+            agent.play_step(True, device)
+        with open("experience_buffer.pickle", "wb") as f:
+            pickle.dump(experience_buffer, f)
+        sys.exit()
+    elif args.initialise_buffer == "load":
+        with open("experience_buffer.pickle", "rb") as f:
+            experience_buffer = pickle.load(f)
+    else:
+        for step in trange(initialisation_steps, leave=False):
+            agent.play_step(True, device)
     
     for epoch in range(args.epochs):
         rewards = []
@@ -135,9 +147,10 @@ if __name__ == "__main__":
     parser.add_argument('--eps_max', type=float, default=0.95, help='Determines the final frame (as a percentage of total frames) to degrade epsilon. Default: 0.95')
     parser.add_argument('--epsilon_start', type=float, default=1.0, help='Epsilon start value. Default: 1.0')
     parser.add_argument('--epsilon_final', type=float, default=0.01, help='Epsilon final value. Default: 0.01')
-    parser.add_argument('--replay_buffer_size', type=int, default=500000, help='Size of the replay buffer. Default: 500000')
+    parser.add_argument('--replay_buffer_size', type=int, default=1000000, help='Size of the replay buffer. Default: 1000000')
     parser.add_argument('--n_steps', type=int, default=2, help='Number of steps for n_step look ahead. Default: 2')
     parser.add_argument('--initialise_buffer_percent', type=int, default=10, help='Percentage of buffer to populate with random actions before training')
+    parser.add_argument('--initialise_buffer', type=str, default="", help='If init, initialises buffer and saves it only, if load it loads the buffer from file, otherwise initialises buffer and continues')
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size for network training. Default: 32')
     parser.add_argument('--gamma', type=float, default=0.99, help='Discount factor to apply to previous rewards. Default: 0.99')
     parser.add_argument('--training', type=bool, default=True, help='Whether in training mode. Default: True')
