@@ -20,7 +20,7 @@ if __name__ == "__main__":
     game = ExtendedGame('scenarios/basic.cfg')
     for i in range(10):
         action = game.sample_actions()
-        assert type(action) is str, "fail: action is not an int"
+        assert type(action) is int, "fail: action is not an int"
         assert 0 < action < 4, "fail: action is not between 1 and 3"
 
     print("Visually test ExtendedGame: start game, move right 12 times, fire 12 times, move left 12 times")
