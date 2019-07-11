@@ -21,32 +21,30 @@ if __name__ == "__main__":
     for i in range(10):
         action = game.sample_actions()
         assert type(action) is int, "fail: action is not an int"
-        print("pass: action is an int")
         assert 0 <= action < 3, "fail: action is not between 1 and 3"
-        print("pass: action is between 1 and 3")
+    print("pass: action is an int and is between 1 and 3")
 
-    print("Visually test ExtendedGame: start game, move right 12 times, fire 12 times, move left 12 times")
+    print("Visually test ExtendedGame: start game, move right 4 times, fire 12 times, move left 4 times")
     device = torch.device("cuda")
     game = ExtendedGame('scenarios/basic.cfg')
     game.set_window_visible(True)
     game.init()
-    number_of_times = 4
     
-    input("Press any key to make left action {} times, each action repeats for 4 frames".format(number_of_times))
+    input("Press any key to make left action 4 times, each action repeats for 4 frames")
     reward = 0
-    for i in range(number_of_times):
+    for i in range(4):
         reward += game.make_action_int(0,4)
     print("reward {}".format(reward))
 
-    input("Press any key to make fire action {} times, each action repeats for 4 frames".format(number_of_times))
+    input("Press any key to make fire action 12 times, each action repeats for 4 frames")
     reward = 0
-    for i in range(number_of_times):
+    for i in range(12):
         reward += game.make_action_int(2,4)
     print("reward {}".format(reward))
 
-    input("Press any key to make right action {} times, each action repeats for 4 frames".format(number_of_times))
+    input("Press any key to make right action 4 times, each action repeats for 4 frames")
     reward = 0
-    for i in range(number_of_times):
+    for i in range(4):
         reward += game.make_action_int(1,4)
     print("reward {}".format(reward))
 
@@ -85,9 +83,7 @@ if __name__ == "__main__":
 
     print("Visualy test Agent, after reset top frame should be a reduced image of size {} by {}".format(width, height))
     agent._reset()
-    print(agent.state[-1].shape)
-    print(agent.state[-1])
-    img = agent.state[-1].reshape(width, height)
+    img = agent.state[-1]
     io.imshow(img)
     plt.show()
     input("Press any key to continue")
