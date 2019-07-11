@@ -21,7 +21,9 @@ if __name__ == "__main__":
     for i in range(10):
         action = game.sample_actions()
         assert type(action) is int, "fail: action is not an int"
+        print("pass: action is an int")
         assert 0 <= action < 3, "fail: action is not between 1 and 3"
+        print("pass: action is between 1 and 3")
 
     print("Visually test ExtendedGame: start game, move right 12 times, fire 12 times, move left 12 times")
     device = torch.device("cuda")
@@ -35,10 +37,7 @@ if __name__ == "__main__":
     print("reward {}".format(game.make_action_int(2,12)))
     input("Press any key to move right {} times".format(number_of_times))
     print("reward {}".format(game.make_action_int(1,12)))
-    input("Press any key to continue")
-    game.close()
-    game.init()
-    game.set_window_visible(False)   
+    input("Press any key to continue")  
     
     capacity = 10
     nsteps = 2
@@ -55,16 +54,21 @@ if __name__ == "__main__":
 
     print("Test Agent: state should be shaped num frames {} width {} height {}".format(num_frames_stacked, width, height))
     assert agent.state.shape == (num_frames_stacked, width, height), "fail: agent state should be shaped {} {} {}".format(num_frames_stacked, width, height)
+    print("pass: agent state shaped {} {} {}".format(num_frames_stacked, width, height))
 
     print("Test Agent: initially all frames in the stack except the top frame should be zero")
     assert sum(agent.state[0:num_frames_stacked-1].flatten()) == 0, "fail: first 3 frames in the stack should be zero when initialised"
+    print("pass: first 3 frames in the stack are zero when initialised")
     assert sum(agent.state[num_frames_stacked-1].flatten()) != 0, "fail: the last frame in the stack should not be zero when initialised"
+    print("pass: the last frame in the stack is not zero when initialised")
 
     print("Test Agent: reset after stack is full should result in all frames in the stack except the top frame being zero")
     agent.state = np.random.rand(num_frames_stacked, width, height)
     agent._reset()
     assert sum(agent.state[0:num_frames_stacked-1].flatten()) == 0, "fail: first 3 frames in the stack should be zero"
+    print("pass: first 3 frames in the stack are zero")
     assert sum(agent.state[num_frames_stacked-1].flatten()) != 0, "fail: the last frame in the stack should not be zero"
+    print("pass: the last frame in the stack should not be zero")
 
     print("Visualy test Agent, after reset top frame should be a reduced image of size {} by {}".format(width, height))
     img = agent.state[num_frames_stacked-1].reshape(width, height)
@@ -101,7 +105,8 @@ if __name__ == "__main__":
         if sum(agent.state[1].flatten()) != 0:
             second_frame_non_zero = True
             break
-    assert second_frame_non_zero, "fail: 2nd frame never zero after 100 steps"
+    assert second_frame_non_zero, "fail: 2nd frame never non-zero after 100 steps"
+    print("pass: 2nd frame non-zero at least some of the time")
 
     print("Network Agent: test network outputs with framestack input")
     state_a = np.array([agent.state], copy=False)
