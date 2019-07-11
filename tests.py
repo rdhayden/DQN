@@ -29,11 +29,11 @@ if __name__ == "__main__":
     game.set_window_visible(True)
     game.init()
     number_of_times = 20
-    input("Press any key to move right {} times".format(number_of_times))
+    input("Press any key to move left {} times".format(number_of_times))
     print("reward {}".format(game.make_action_int(0,number_of_times)))
     input("Press any key to fire {} times".format(number_of_times))
     print("reward {}".format(game.make_action_int(2,12)))
-    input("Press any key to move left {} times".format(number_of_times))
+    input("Press any key to move right {} times".format(number_of_times))
     print("reward {}".format(game.make_action_int(1,12)))
     input("Press any key to continue")
     game.set_window_visible(False)   
