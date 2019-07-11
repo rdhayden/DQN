@@ -88,10 +88,10 @@ if __name__ == "__main__":
     input("Press any key to continue")
     plt.close()
 
-    print("resetting experience buffer, then observe state and invoke agent play method 1000 times ...")
+    print("resetting experience buffer, then observe state and invoke agent play method 100 times ...")
     experience_buffer.buffer.clear()
     agent._reset()
-    for i in range(1000):
+    for i in range(100):
         play_random = True
         agent.play_step(play_random)
     print("number of experiences in the buffer: {}. Buffer capacity {}".format(len(experience_buffer), capacity))
