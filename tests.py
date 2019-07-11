@@ -85,8 +85,8 @@ if __name__ == "__main__":
     agent._reset()
     print(agent.state.shape)
     print(agent.state)
-    img = agent.state[-1]
-    io.imshow(img)
+    img = agent.state[-1] * 255
+    io.imshow(img.astype(int))
     plt.show()
     input("Press any key to continue")
     plt.close()
@@ -101,12 +101,14 @@ if __name__ == "__main__":
     
     input("Press any key to see a random initial state image from the experience buffer")
     idx = np.random.choice(len(experience_buffer))
-    random_experience = experience_buffer[idx]
-    io.imshow(random_experience.state[num_frames_stacked-1])
+    random_experience = experience_buffer.buffer[idx]
+    img = random_experience.state[-1] * 255
+    io.imshow(img.astype(int))
     plt.show()
     input("Press any key to see the next state image for the same experience")
     plt.close()
-    io.imshow(random_experience.new_state[num_frames_stacked-1])
+    img2 = random_experience.new_state[-1] * 255
+    io.imshow(img2.astype(int))
     plt.show()
     input("Press any key to continue")
 
