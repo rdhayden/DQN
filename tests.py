@@ -83,10 +83,7 @@ if __name__ == "__main__":
 
     print("Visualy test Agent, after reset top frame should be a reduced image of size {} by {}".format(width, height))
     agent._reset()
-    print(agent.state.shape)
-    print(agent.state)
-    img = agent.state[-1] * 255
-    io.imshow(img.astype(int))
+    io.imshow(agent.state[-1])
     plt.show()
     input("Press any key to continue")
     plt.close()
