@@ -99,13 +99,11 @@ if __name__ == "__main__":
     input("Press any key to see a random initial state image from the experience buffer")
     idx = np.random.choice(len(experience_buffer))
     random_experience = experience_buffer.buffer[idx]
-    img = random_experience.state[-1] * 255
-    io.imshow(img.astype(int))
+    io.imshow(random_experience.state[-1])
     plt.show()
     input("Press any key to see the next state image for the same experience")
     plt.close()
-    img2 = random_experience.new_state[-1] * 255
-    io.imshow(img2.astype(int))
+    io.imshow(random_experience.new_state[-1])
     plt.show()
     input("Press any key to continue")
 
