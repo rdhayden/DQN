@@ -36,7 +36,10 @@ class Agent:
         resized_img = resize(img, (self.width, self.height))
         # each frame needs another dimension so it can be stacked
         new_frame = np.array([resized_img])
-        new_frame = new_frame.astype(np.float32) / 255.0
+
+        # It appears resize converts to a float between 0 and 1 so no need for the next conversion 
+        # new_frame = new_frame.astype(np.float32) / 255.0
+
         # now create stack with last few frames and this frame
         new_stack = np.copy(self.state)
         new_stack[:-1] = new_stack[1:]
