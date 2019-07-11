@@ -57,7 +57,8 @@ def train():
     ts = time.time()
     
     if args.initialise_buffer == "init":
-        print("Initialising and saving buffer with %d transitions" % args.replay_buffer_size)
+        num_transitions = args.replay_buffer_size / args.buffer_skip
+        print("Initialising and saving buffer with %d transitions" % num_transitions)
         for step in trange(args.replay_buffer_size, leave=False):
             if (step % args.buffer_skip == 0):
                 agent.play_step(True, device, write_to_buffer=True)
