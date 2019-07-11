@@ -42,7 +42,7 @@ class Agent:
         new_stack[-1] = new_frame
         return new_stack
 
-    def play_step(self, play_random, device="cpu"):
+    def play_step(self, play_random, device="cpu", write_to_buffer=True):
         done_reward = None
         if play_random:
             action = self.game.sample_actions()
@@ -61,12 +61,12 @@ class Agent:
             done_reward = self.game.get_total_reward()
             new_state = self.state # it will get overriden later anyway so this is just a placeholder
             exp = Experience(self.state, action, reward, is_done, new_state)
-            self.exp_buffer.append(exp)
+            if write_to_buffer: self.exp_buffer.append(exp)
             self._reset()
         else:
             new_state = self._process_frame(self.game.get_state().screen_buffer)
             exp = Experience(self.state, action, reward, is_done, new_state)
-            self.exp_buffer.append(exp)
+            if write_to_buffer: self.exp_buffer.append(exp)
             self.state = new_state
 
         return done_reward
