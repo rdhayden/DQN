@@ -59,10 +59,10 @@ def train():
     if args.initialise_buffer == "init":
         print("Initialising and saving buffer with %d transitions" % args.replay_buffer_size)
         for step in trange(args.replay_buffer_size, leave=False):
-            if (args.buffer_skip > 0) and (step % args.buffer_skip != 0):
-                agent.play_step(True, device, write_to_buffer=False)
-            else:
+            if (step % args.buffer_skip == 0):
                 agent.play_step(True, device, write_to_buffer=True)
+            else:
+                agent.play_step(True, device, write_to_buffer=False)
 
         with open("experience_buffer.pickle", "wb") as f:
             pickle.dump(experience_buffer, f)
@@ -157,7 +157,7 @@ if __name__ == "__main__":
     parser.add_argument('--n_steps', type=int, default=2, help='Number of steps for n_step look ahead. Default: 2')
     parser.add_argument('--initialise_buffer_percent', type=int, default=10, help='Percentage of buffer to populate with random actions before training')
     parser.add_argument('--initialise_buffer', type=str, default="", help='If init, initialises buffer and saves it only, if load it loads the buffer from file, otherwise initialises buffer and continues')
-    parser.add_argument('--buffer_skip', type=str, default=0, help='If initialise_buffer is init, only records every n experiences in the buffer. Default: 0')
+    parser.add_argument('--buffer_skip', type=str, default=1, help='If initialise_buffer is init, only records every n experiences in the buffer. Default: 1')
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size for network training. Default: 32')
     parser.add_argument('--gamma', type=float, default=0.99, help='Discount factor to apply to previous rewards. Default: 0.99')
     parser.add_argument('--training', type=bool, default=True, help='Whether in training mode. Default: True')
