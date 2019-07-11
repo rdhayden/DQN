@@ -28,18 +28,20 @@ if __name__ == "__main__":
     game = ExtendedGame('scenarios/basic.cfg')
     game.set_window_visible(True)
     game.init()
-    print("moving right: reward {}".format(game.make_action_int(0,12)))
-    input("Press any key to continue")
-    print("firing: reward {}".format(game.make_action_int(2,12)))
-    input("Press any key to continue")
-    print("moving left: reward {}".format(game.make_action_int(1,12)))
+    number_of_times = 20
+    input("Press any key to move right {} times".format(number_of_times))
+    print("reward {}".format(game.make_action_int(0,number_of_times)))
+    input("Press any key to fire {} times".format(number_of_times))
+    print("reward {}".format(game.make_action_int(2,12)))
+    input("Press any key to move left {} times".format(number_of_times))
+    print("reward {}".format(game.make_action_int(1,12)))
     input("Press any key to continue")
     game.set_window_visible(False)   
     
     capacity = 10
     nsteps = 2
     gamma = 0.99
-    experience_buffer = ExperienceBuffer(capacity, n_steps, gamma)
+    experience_buffer = ExperienceBuffer(capacity, nsteps, gamma)
     num_frames_stacked = 4
     width = 54
     height = 54
