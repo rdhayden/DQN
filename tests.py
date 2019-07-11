@@ -32,7 +32,7 @@ if __name__ == "__main__":
     input("Press any key to continue")
     print("firing: reward {}".format(game.make_action_int(2,12)))
     input("Press any key to continue")
-    print("moving left: reward {}".format(game.make_action_int(1,12))
+    print("moving left: reward {}".format(game.make_action_int(1,12)))
     input("Press any key to continue")
     game.set_window_visible(False)   
     
@@ -106,6 +106,6 @@ if __name__ == "__main__":
     print("Q value predictions:")
     print(q_vals_tensor)
     print()
-     _, index = torch.max(q_vals_tensor, 1) # index of action predicted with the highest value
+    _, index = torch.max(q_vals_tensor, 1) # index of action predicted with the highest value
     action = index.cpu().data.numpy()[0]
     print("Predicted action: {}".format(action))
