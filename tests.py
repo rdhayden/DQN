@@ -94,7 +94,7 @@ if __name__ == "__main__":
     for i in range(1000):
         play_random = True
         agent.play_step(play_random)
-    print("number of experiences in the buffer: {}".format(len(experience_buffer)))
+    print("number of experiences in the buffer: {}. Buffer capacity {}".format(len(experience_buffer), capacity))
     
     input("Press any key to see a random initial state image from the experience buffer")
     idx = np.random.choice(len(experience_buffer))
