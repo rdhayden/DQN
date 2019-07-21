@@ -14,8 +14,8 @@ def calc_loss(batch, train_net, target_net, gamma, device="cpu"):
     done_mask = torch.ByteTensor(dones).to(device)
 
     state_action_values = train_net(states_v).gather(1, actions_v.unsqueeze(-1)).squeeze(-1)
-    next_state_actions = train_net(next_states_v).max(1)[1]
-    next_state_values = target_net(next_states_v).gather(1, next_state_actions.unsqueeze(-1)).squeeze(-1)
+    next_state_values = target_net(next_states_v).max(1)[0]
+
     next_state_values[done_mask] = 0.0
 
     # detach the next state values so that back propagation does not update the target network

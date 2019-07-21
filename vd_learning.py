@@ -168,7 +168,7 @@ if __name__ == "__main__":
 
     if args.troubleshoot:
         args.epochs = 2
-        args.steps_per_epoch = 100
+        args.steps_per_epoch = 1000
         args.sync_networks_after = 10
         args.replay_buffer_size = 100
         args.log_dir = './troubleshooting_runs'
