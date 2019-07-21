@@ -53,7 +53,7 @@ if __name__ == "__main__":
     capacity = 10
     nsteps = 2
     gamma = 0.99
-    experience_buffer = ExperienceBuffer(capacity, nsteps, gamma)
+    experience_buffer = ExperienceBuffer(capacity, gamma)
     num_frames_stacked = 4
     width = 54
     height = 54
