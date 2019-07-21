@@ -97,13 +97,12 @@ if __name__ == "__main__":
     print("number of experiences in the buffer: {}. Buffer capacity {}".format(len(experience_buffer), capacity))
     
     input("Press any key to see a random initial state image from the experience buffer")
-    idx = np.random.choice(len(experience_buffer))
-    random_experience = experience_buffer.buffer[idx]
-    io.imshow(random_experience.state[-1])
+    states, actions, rewards, dones, next_states = experience_buffer.sample(1)
+    io.imshow(states[0][3])
     plt.show()
     input("Press any key to see the next state image for the same experience")
     plt.close()
-    io.imshow(random_experience.new_state[-1])
+    io.imshow(next_states[0][3])
     plt.show()
     input("Press any key to continue")
 
