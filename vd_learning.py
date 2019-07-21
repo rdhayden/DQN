@@ -63,7 +63,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--epochs", 
         type=int, 
-        default=500, 
+        default=200, 
         help="Number of epochs. Default: 500"
     )
     parser.add_argument(
@@ -99,13 +99,13 @@ if __name__ == "__main__":
     parser.add_argument(
         "--replay_buffer_size", 
         type=int, 
-        default=500000, 
+        default=200000, 
         help="Size of the replay buffer. Default: 500000"
     )
     parser.add_argument(
         "--initialise_buffer_percent", 
         type=int, 
-        default=10, 
+        default=50, 
         help="Percentage of buffer to populate with random actions before training"
     )
     parser.add_argument(
