@@ -15,8 +15,178 @@ import argparse
 import datetime
 import os, sys
 
-#@profile
-def train():
+if __name__ == "__main__":
+
+    start_date_time = datetime.datetime.now()
+
+    parser = argparse.ArgumentParser(description='Trains or demonstrates ViZDoom agent')
+    parser.add_argument(
+        "--window_visible", 
+        type=bool, default=False, 
+        help="Boolean to make game window visible. Default: False"
+    )
+    parser.add_argument(
+        "--gpu'", 
+        type=bool, 
+        default=True, 
+        help="Boolean to use GPU. Default: True"
+    )
+    parser.add_argument(
+        "--num_frames_stacked", 
+        type=int, default=4, 
+        help="Number of frames to stack together. Default: 4"
+    )
+    parser.add_argument(
+        "--game_config_file_path", 
+        type=str, 
+        default="scenarios/basic.cfg", 
+        help="Path to game config file. Default: scenarios/basic.cfg"
+    )
+    parser.add_argument(
+        "--repeat_for_frames", 
+        type=int, 
+        default=4, 
+        help="Number of frames to repeat each action. Default: 4"
+    )
+    parser.add_argument(
+        "--learning_rate", 
+        type=float, 
+        default=0.00001, 
+        help="Learning rate for the optimizer. Default: "
+    )
+    parser.add_argument(
+        "--sync_networks_after", 
+        type=int, 
+        default=500, 
+        help="Steps between synchronization of target and training networks. Default: 1024"
+    )
+    parser.add_argument(
+        "--epochs", 
+        type=int, 
+        default=500, 
+        help="Number of epochs. Default: 500"
+    )
+    parser.add_argument(
+        "--steps_per_epoch", 
+        type=int, 
+        default=2000, 
+        help="Number of training steps per epoch. Default: 2000"
+    )
+    parser.add_argument(
+        "--eps_const", 
+        type=float, 
+        default=0.05, 
+        help="Proportion of time to keep epsilon constant initially. Default: 0.05"
+    )
+    parser.add_argument(
+        "--eps_max", 
+        type=float, 
+        default=0.95, 
+        help="Determines the final frame (as a percentage of total frames) to degrade epsilon. Default: 0.95"
+    )
+    parser.add_argument(
+        "--epsilon_start", 
+        type=float, 
+        default=1.0, 
+        help="Epsilon start value. Default: 1.0"
+    )
+    parser.add_argument(
+        "--epsilon_final", 
+        type=float, 
+        default=0.01, 
+        help="Epsilon final value. Default: 0.01"
+    )
+    parser.add_argument(
+        "--replay_buffer_size", 
+        type=int, 
+        default=500000, 
+        help="Size of the replay buffer. Default: 500000"
+    )
+    parser.add_argument(
+        "--n_steps", 
+        type=int, 
+        default=2, 
+        help="Number of steps for n_step look ahead. Default: 2"
+    )
+    parser.add_argument(
+        "--initialise_buffer_percent", 
+        type=int, 
+        default=10, 
+        help="Percentage of buffer to populate with random actions before training"
+    )
+    parser.add_argument(
+        "--initialise_buffer", 
+        type=str, 
+        default="", 
+        help="If init initialises buffer and saves only, if load it loads the buffer from file, \
+            otherwise initialises buffer and continues"
+    )
+    parser.add_argument(
+        "--buffer_skip", 
+        type=int, 
+        default=2, 
+        help="If initialise_buffer is init, only records every n experiences in the buffer. Default: 2"
+    )
+    parser.add_argument(
+        "--batch_size", 
+        type=int, 
+        default=32, 
+        help="Batch size for network training. Default: 32"
+    )
+    parser.add_argument(
+        "--gamma", 
+        type=float, 
+        default=0.99, 
+        help="Discount factor to apply to previous rewards. Default: 0.99"
+    )
+    parser.add_argument(
+        "--training", 
+        type=bool, 
+        default=True, 
+        help="Whether in training mode. Default: True"
+    )
+    parser.add_argument(
+        "--model_save_interval", 
+        type=int, 
+        default=10000, 
+        help="Save the model after every X epochs. Default: 10"
+    )
+    parser.add_argument(
+        "--play_model_path", 
+        type=str, 
+        help="To play the model, provide the path to the model. Ignore if ---training set to True"
+    )
+    parser.add_argument(
+        "--log_dir", 
+        type=str, 
+        default="./runs", 
+        help="Directory to write tensorboard logs to. Default: ./runs"
+    )
+    parser.add_argument(
+        "--troubleshoot", 
+        type=bool, 
+        default=False, 
+        help="for troubleshooting the code. Trains with /n window visible, 2 epochs, \
+        100 steps per epoch, sync networks after 10 steps, replay buffer size of 100, batch size of 3, log to ./troubleshooting_runs"
+    )
+
+    args = parser.parse_args()
+
+    if args.troubleshoot:
+        args.epochs = 2
+        args.steps_per_epoch = 100
+        args.sync_networks_after = 10
+        args.replay_buffer_size = 100
+        args.log_dir = './troubleshooting_runs'
+        args.batch_size = 3
+
+    # dimensions of frames after processing, could make this an arg in future, but might be confusing as its not just a resize
+    # I'm removing the cieling too in the agent.
+    width = 54
+    height = 54
+
+    device = torch.device("cuda" if args.gpu else "cpu")
+
     game = ExtendedGame(args.game_config_file_path)
     game.set_window_visible(args.window_visible)
     game.init() 
@@ -29,17 +199,29 @@ def train():
     epsilon_decay_over_frames = epsilon_decay_last_frame - epsilon_decay_first_frame
     epsilon_decay_per_frame = epsilon_amount_to_decay / epsilon_decay_over_frames
 
-    experience_buffer = ExperienceBuffer(args.replay_buffer_size, args.n_steps, args.gamma)
-    initialisation_steps = int(args.replay_buffer_size * args.initialise_buffer_percent / 100)
+    experience_buffer = ExperienceBuffer(
+        args.replay_buffer_size, args.n_steps, args.gamma
+    )
+    initialisation_steps = int(
+        args.replay_buffer_size * args.initialise_buffer_percent / 100
+    )
 
     # setup the training and target networks
     net_shape = (args.num_frames_stacked, width, height)
     train_net = ConvNet(net_shape, game.n_actions).to(device)
     target_net = ConvNet(net_shape, game.n_actions).to(device)
 
-    agent = Agent(game, train_net, experience_buffer, width, height, args.num_frames_stacked, args.repeat_for_frames)
+    agent = Agent(
+        game, 
+        train_net, 
+        experience_buffer, 
+        width, 
+        height, 
+        args.num_frames_stacked, 
+        args.repeat_for_frames
+    )
+
     epsilon = args.epsilon_start
-    #optimizer = optim.SGD(train_net.parameters(), lr=args.learning_rate)
     optimizer = optim.Adam(train_net.parameters(), lr=args.learning_rate)
 
     last_100_rewards = collections.deque(maxlen=100)
@@ -58,7 +240,10 @@ def train():
     
     if args.initialise_buffer == "init":
         steps = args.replay_buffer_size * args.buffer_skip
-        print("Initialising and saving buffer with %d transitions" % args.replay_buffer_size)
+        print(
+            "Initialising and saving buffer with %d transitions" 
+            % args.replay_buffer_size
+        )
         for step in trange(steps, leave=False):
             if (step % args.buffer_skip == 0):
                 agent.play_step(True, device, write_to_buffer=True)
@@ -68,11 +253,13 @@ def train():
         with open("experience_buffer.pickle", "wb") as f:
             pickle.dump(experience_buffer, f)
         sys.exit()
+
     elif args.initialise_buffer == "load":
         print("loading buffer ...")
         with open("experience_buffer.pickle", "rb") as f:
             experience_buffer = pickle.load(f)
             print("buffer size: {}".format(len(experience_buffer)))
+            
     else:
         print("Initialising buffer with %d transitions" % initialisation_steps)
         for step in trange(initialisation_steps, leave=False):
@@ -137,55 +324,3 @@ def train():
             print('\nSaved model to ' + model_file)
     
     writer.close()
-
-if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser(description='Trains or demonstrates ViZDoom agent')
-    parser.add_argument('--window_visible', type=bool, default=False, help='Boolean to make game window visible. Default: False')
-    parser.add_argument('--gpu', type=bool, default=True, help='Boolean to use GPU. Default: True')
-    parser.add_argument('--num_frames_stacked', type=int, default=4, help='Number of frames to stack together. Default: 4')
-    parser.add_argument('--game_config_file_path', type=str, default='scenarios/basic.cfg', help='Path to game config file. Default: scenarios/basic.cfg')
-    parser.add_argument('--repeat_for_frames', type=int, default=4, help='Number of frames to repeat each action. Default: 4')
-    parser.add_argument('--learning_rate', type=float, default=0.00001, help='Learning rate for the optimizer. Default: ')
-    parser.add_argument('--sync_networks_after', type=int, default=500, help='Steps between synchronization of target and training networks. Default: 1024')
-    parser.add_argument('--epochs', type=int, default=500, help='Number of epochs. Default: 500')
-    parser.add_argument('--steps_per_epoch', type=int, default=2000, help='Number of training steps per epoch. Default: 2000')
-    parser.add_argument('--eps_const', type=float, default=0.05, help='Proportion of time to keep epsilon constant initially. Default: 0.05')
-    parser.add_argument('--eps_max', type=float, default=0.95, help='Determines the final frame (as a percentage of total frames) to degrade epsilon. Default: 0.95')
-    parser.add_argument('--epsilon_start', type=float, default=1.0, help='Epsilon start value. Default: 1.0')
-    parser.add_argument('--epsilon_final', type=float, default=0.01, help='Epsilon final value. Default: 0.01')
-    parser.add_argument('--replay_buffer_size', type=int, default=500000, help='Size of the replay buffer. Default: 500000')
-    parser.add_argument('--n_steps', type=int, default=2, help='Number of steps for n_step look ahead. Default: 2')
-    parser.add_argument('--initialise_buffer_percent', type=int, default=10, help='Percentage of buffer to populate with random actions before training')
-    parser.add_argument('--initialise_buffer', type=str, default="", help='If init, initialises buffer and saves it only, if load it loads the buffer from file, otherwise initialises buffer and continues')
-    parser.add_argument('--buffer_skip', type=int, default=2, help='If initialise_buffer is init, only records every n experiences in the buffer. Default: 2')
-    parser.add_argument('--batch_size', type=int, default=32, help='Batch size for network training. Default: 32')
-    parser.add_argument('--gamma', type=float, default=0.99, help='Discount factor to apply to previous rewards. Default: 0.99')
-    parser.add_argument('--training', type=bool, default=True, help='Whether in training mode. Default: True')
-    parser.add_argument('--model_save_interval', type=int, default=10000, help='Save the model after every X epochs. Default: 10')
-    parser.add_argument('--play_model_path', type=str, help='To play the model, provide the path to the model. Ignore if ---training set to True')
-    parser.add_argument('--log_dir', type=str, default='./runs', help='Directory to write tensorboard logs to. Default: ./runs')
-    parser.add_argument('--troubleshoot', type=bool, default=False, help='for troubleshooting the code. Trains with /n window visible, 2 epochs, \
-        100 steps per epoch, sync networks after 10 steps, replay buffer size of 100, batch size of 3, log to ./troubleshooting_runs')
-
-    args = parser.parse_args()
-
-    if args.troubleshoot:
-        args.epochs = 2
-        args.steps_per_epoch = 100
-        args.sync_networks_after = 10
-        args.replay_buffer_size = 100
-        args.log_dir = './troubleshooting_runs'
-        args.batch_size = 3
-
-    # dimensions of frames after processing, could make this an arg in future, but might be confusing as its not just a resize
-    # I'm removing the cieling too in the agent. Could have a scale_down_percent and remove_cieling arg instead.
-    width = 54
-    height = 54
-
-    device = torch.device("cuda" if args.gpu else "cpu")
-
-    if args.training:
-        train()
-
-    # TODO add else to play the game without training

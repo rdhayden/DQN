@@ -5,7 +5,17 @@ import torch
 import time
 
 class Agent:
-    def __init__(self, game, net, exp_buffer, width, height, num_frames_stacked, repeat_for_frames, record=False):
+    def __init__(
+        self, 
+        game, 
+        net, 
+        exp_buffer, 
+        width, 
+        height, 
+        num_frames_stacked, 
+        repeat_for_frames, 
+        record=False
+    ):
         self.game = game
         self.net = net
         self.exp_buffer = exp_buffer
@@ -31,9 +41,11 @@ class Agent:
     def _process_frame(self, img):
         # remove the cieling, it doesn't add any information, and reduce width 
         # both sides to create square image as the view is always centered on the player
-        img = img[96:,88:232]
+        img = img[96:, 88:232]
+
         # resize the image
         resized_img = resize(img, (self.width, self.height))
+        
         # each frame needs another dimension so it can be stacked
         new_frame = np.array([resized_img])
 
@@ -55,22 +67,29 @@ class Agent:
             state_a = np.array([self.state], copy=False)
             state_tensor = torch.tensor(state_a, dtype=torch.float).to(device)
             q_vals_tensor = self.net(state_tensor)
-            _, index = torch.max(q_vals_tensor, 1) # index of action predicted with the highest value
+            _, index = torch.max(
+                q_vals_tensor, 1
+            ) # index of action predicted with the highest value
             action = index.cpu().data.numpy()[0]
 
         # take actions in the game
         reward = self.game.make_action_int(action, self.repeat_for_frames)
         is_done = self.game.is_episode_finished()
+
         if is_done:
             done_reward = self.game.get_total_reward()
-            new_state = self.state # it will get overriden later anyway so this is just a placeholder
+            new_state = (
+                self.state
+             ) # it will get overriden later anyway so this is just a placeholder
             exp = Experience(self.state, action, reward, is_done, new_state)
-            if write_to_buffer: self.exp_buffer.append(exp)
+            if write_to_buffer:
+                self.exp_buffer.append(exp)
             self._reset()
         else:
             new_state = self._process_frame(self.game.get_state().screen_buffer)
             exp = Experience(self.state, action, reward, is_done, new_state)
-            if write_to_buffer: self.exp_buffer.append(exp)
+            if write_to_buffer:
+                self.exp_buffer.append(exp)
             self.state = new_state
 
         return done_reward
