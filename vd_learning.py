@@ -26,7 +26,7 @@ if __name__ == "__main__":
         help="Boolean to make game window visible. Default: False"
     )
     parser.add_argument(
-        "--gpu'", 
+        "--gpu", 
         type=bool, 
         default=True, 
         help="Boolean to use GPU. Default: True"
