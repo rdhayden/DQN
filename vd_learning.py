@@ -103,12 +103,6 @@ if __name__ == "__main__":
         help="Size of the replay buffer. Default: 500000"
     )
     parser.add_argument(
-        "--n_steps", 
-        type=int, 
-        default=2, 
-        help="Number of steps for n_step look ahead. Default: 2"
-    )
-    parser.add_argument(
         "--initialise_buffer_percent", 
         type=int, 
         default=10, 
@@ -200,7 +194,7 @@ if __name__ == "__main__":
     epsilon_decay_per_frame = epsilon_amount_to_decay / epsilon_decay_over_frames
 
     experience_buffer = ExperienceBuffer(
-        args.replay_buffer_size, args.n_steps, args.gamma
+        args.replay_buffer_size, args.gamma
     )
     initialisation_steps = int(
         args.replay_buffer_size * args.initialise_buffer_percent / 100

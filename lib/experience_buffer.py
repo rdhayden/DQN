@@ -5,16 +5,17 @@ import pickle
 import zlib
 
 Experience = collections.namedtuple(
+    "Experience", field_names=["state", "action", "reward", "done", "new_state"]
+)
+
+ExperienceCompressed = collections.namedtuple(
     "Experience", field_names=["state_key", "action", "reward", "done", "new_state_key"]
 )
 
 class ExperienceBuffer:
-    def __init__(self, capacity, n_steps, gamma):
-        assert n_steps > 0
+    def __init__(self, capacity, gamma):
         self.buffer = collections.deque(maxlen=capacity)
-        self.temp_buffer = collections.deque(maxlen=n_steps)
         self.gamma = gamma
-        self.n_steps = n_steps
         self._imgs = {}
         self._capacity = capacity
 
@@ -22,19 +23,11 @@ class ExperienceBuffer:
         return len(self.buffer)
 
     def append(self, experience):
-        self.temp_buffer.append(experience)
-        if experience.done:
-            self._make_n_step_experience()
-            self.temp_buffer.clear()
-        elif len(self.temp_buffer) == self.n_steps:
-            self._make_n_step_experience()
-
-    def _make_n_step_experience(self):
-        Rt = 0
-        state_key = self.put_image(self.temp_buffer[0].state_key)
-        new_state_key = self.put_image(self.temp_buffer[-1].new_state_key)
-        for i in range(len(self.temp_buffer)):
-            Rt += (self.gamma ** i) * self.temp_buffer[i].reward
+        # slightly confusing, in this context experience.state_key and experience.new_state_key is actually 
+        # the video frame not a key, originally didn't use keys but later it is stored as a keys
+        # needs refactoring to make the code clearer
+        state_key = self.put_image(experience.state)
+        new_state_key = self.put_image(experience.new_state)
 
         if len(self.buffer) == self._capacity:
             # remove experience from the back of the queue, this would be done by default when adding the next experience
@@ -42,22 +35,22 @@ class ExperienceBuffer:
             # check if the states associated with the experience at the back of the queue are used by other experiences,
             # if not delete the states to reclaim memory, otherwise -1 from the count as this experience no longer
             # references them. This is effectively a garbage collector for unused states in the _imgs dict
-            experience = self.buffer.popleft()
-            if self._imgs[experience.state_key][1] == 1:
-                del self._imgs[experience.state_key]
+            exp = self.buffer.popleft()
+            if self._imgs[exp.state_key][1] == 1:
+                del self._imgs[exp.state_key]
             else:
-                self._imgs[experience.state_key][1] -= 1
-            if self._imgs[experience.new_state_key][1] == 1:
-                del self._imgs[experience.new_state_key]
+                self._imgs[exp.state_key][1] -= 1
+            if self._imgs[exp.new_state_key][1] == 1:
+                del self._imgs[exp.new_state_key]
             else:
-                self._imgs[experience.new_state_key][1] -= 1
+                self._imgs[exp.new_state_key][1] -= 1
 
         self.buffer.append(
-            Experience(
+            ExperienceCompressed(
                 state_key,
-                self.temp_buffer[0].action,
-                Rt,
-                self.temp_buffer[-1].done,
+                experience.action,
+                experience.reward,
+                experience.done,
                 new_state_key,
             )
         )
