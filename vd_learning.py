@@ -39,8 +39,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--game_config_file_path", 
         type=str, 
-        default="scenarios/basic.cfg", 
-        help="Path to game config file. Default: scenarios/basic.cfg"
+        default="scenarios/defend_the_line_no_ammo_penalty.cfg", 
+        help="Path to game config file. Default: scenarios/defend_the_line_no_ammo_penalty.cfg"
     )
     parser.add_argument(
         "--repeat_for_frames", 
